@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>السائقين</title>
+
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <script type="module" src="assets/js/firebase.js"></script>
+    <script src="assets/js/session.js"></script>
+    <script src="assets/js/roles.js"></script>
+    <script src="assets/js/lang.js"></script>
+    <script src="assets/js/ui.js"></script>
+</head>
+
+<body data-page="drivers">
+
+    <!-- Sidebar -->
+    <div id="sidebar"></div>
+
+    <!-- Main -->
+    <div class="main">
+
+        <!-- Topbar -->
+        <div id="topbar"></div>
+
+        <div class="content">
+
+            <h1 class="page-header">السائقين</h1>
+
+            <!-- Table -->
+            <div id="drivers-list" class="table"></div>
+
+        </div>
+
+        <!-- Developer Footer -->
+        <div class="footer">
+            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
+        </div>
+
+    </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    Session.check();
+    Roles.enforcePage();
+
+    const list = document.getElementById("drivers-list");
+
+    DB.drivers.watch(data => {
+        list.innerHTML = "";
+
+        if (!data) {
+            list.innerHTML = "<div class='empty'>لا يوجد سائقين</div>";
+            return;
+        }
+
+        const entries = Object.entries(data);
+
+        entries.forEach(([id, d]) => {
+            const row = document.createElement("div");
+            row.className = "table-row";
+
+            row.innerHTML = `
+                <div class="cell">${d.name || "-"}</div>
+                <div class="cell">${d.phone || "-"}</div>
+                <div class="cell">${d.license || "-"}</div>
+                <div class="cell">${d.status || "-"}</div>
+            `;
+
+            list.appendChild(row);
+        });
+    });
+
+});
+</script>
+
+</body>
+</html>

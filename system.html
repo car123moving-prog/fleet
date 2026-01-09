@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>معلومات النظام</title>
+
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <script type="module" src="assets/js/firebase.js"></script>
+    <script src="assets/js/session.js"></script>
+    <script src="assets/js/roles.js"></script>
+    <script src="assets/js/lang.js"></script>
+    <script src="assets/js/ui.js"></script>
+</head>
+
+<body data-page="system">
+
+    <!-- Sidebar -->
+    <div id="sidebar"></div>
+
+    <!-- Main -->
+    <div class="main">
+
+        <!-- Topbar -->
+        <div id="topbar"></div>
+
+        <div class="content">
+
+            <h1 class="page-header">معلومات النظام</h1>
+
+            <div class="system-section">
+
+                <h2 class="section-title">حالة الاتصال</h2>
+                <div id="sys-connection" class="sys-box">جاري الفحص...</div>
+
+                <h2 class="section-title">حالة Firebase</h2>
+                <div id="sys-firebase" class="sys-box">جاري الفحص...</div>
+
+                <h2 class="section-title">بيانات الجلسة</h2>
+                <div id="sys-session" class="sys-box">جاري التحميل...</div>
+
+            </div>
+
+        </div>
+
+        <!-- Developer Footer -->
+        <div class="footer">
+            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
+        </div>
+
+    </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+
+    Session.check();
+    Roles.enforcePage();
+
+    // ====== حالة الاتصال ======
+    const connBox = document.getElementById("sys-connection");
+    if (navigator.onLine) {
+        connBox.textContent = "متصل بالإنترنت";
+        connBox.style.color = "green";
+    } else {
+        connBox.textContent = "غير متصل بالإنترنت";
+        connBox.style.color = "red";
+    }
+
+    // ====== حالة Firebase ======
+    const fbBox = document.getElementById("sys-firebase");
+
+    try {
+        const test = await DB.crud.get("system/test");
+        fbBox.textContent = "متصل بـ Firebase";
+        fbBox.style.color = "green";
+    } catch (e) {
+        fbBox.textContent = "غير قادر على الاتصال بـ Firebase";
+        fbBox.style.color = "red";
+    }
+
+    // ====== بيانات الجلسة ======
+    const sessionBox = document.getElementById("sys-session");
+
+    const userId = localStorage.getItem("user_id");
+    const userName = localStorage.getItem("user_name");
+    const userRole = localStorage.getItem("user_role");
+
+    sessionBox.innerHTML = `
+        <div>معرّف المستخدم: <strong>${userId}</strong></div>
+        <div>الاسم: <strong>${userName}</strong></div>
+        <div>الدور: <strong>${userRole}</strong></div>
+        <div>آخر دخول: <strong>${new Date().toLocaleString()}</strong></div>
+    `;
+});
+</script>
+
+</body>
+</html>

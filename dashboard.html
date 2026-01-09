@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>لوحة التحكم</title>
+
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <script type="module" src="assets/js/firebase.js"></script>
+    <script src="assets/js/session.js"></script>
+    <script src="assets/js/roles.js"></script>
+    <script src="assets/js/lang.js"></script>
+    <script src="assets/js/ui.js"></script>
+</head>
+
+<body data-page="dashboard">
+
+    <!-- Sidebar -->
+    <div id="sidebar"></div>
+
+    <!-- Main Content -->
+    <div class="main">
+
+        <!-- Topbar -->
+        <div id="topbar"></div>
+
+        <div class="content">
+
+            <h1 class="page-header">لوحة التحكم</h1>
+
+            <!-- Cards -->
+            <div class="cards">
+                <div class="card">
+                    <div class="card-title">عدد المركبات</div>
+                    <div id="count-vehicles" class="card-value">0</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">عدد السائقين</div>
+                    <div id="count-drivers" class="card-value">0</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">عدد الحركات</div>
+                    <div id="count-movements" class="card-value">0</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">عدد المستندات</div>
+                    <div id="count-documents" class="card-value">0</div>
+                </div>
+            </div>
+
+            <!-- Recent Movements -->
+            <h2 class="page-header">آخر الحركات</h2>
+
+            <div id="recent-movements" class="table"></div>
+
+        </div>
+
+        <!-- Developer Footer -->
+        <div class="footer">
+            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
+        </div>
+
+    </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    Session.check();
+    Roles.enforcePage();
+
+    // ========== Counters ==========
+    DB.vehicles.watch(data => {
+        const count = data ? Object.keys(data).length : 0;
+        document.getElementById("count-vehicles").textContent = count;
+    });
+
+    DB.drivers.watch(data => {
+        const count = data ? Object.keys(data).length : 0;
+        document.getElementById("count-drivers").textContent = count;
+    });
+
+    DB.movements.watch(data => {
+        const count = data ? Object.keys(data).length : 0;
+        document.getElementById("count-movements").textContent = count;
+    });
+
+    DB.documents.watch(data => {
+        const count = data ? Object.keys(data).length : 0;
+        document.getElementById("count-documents").textContent = count;
+    });
+
+    // ========== Recent Movements ==========
+    DB.movements.watch(data => {
+        const box = document.getElementById("recent-movements");
+        box.innerHTML = "";
+
+        if (!data) {
+            box.innerHTML = "<div class='empty'>لا توجد بيانات</div>";
+            return;
+        }
+
+        const entries = Object.entries(data)
+            .sort((a,b)=>b[1].time - a[1].time)
+            .slice(0, 5);
+
+        entries.forEach(([id, m]) => {
+            const row = document.createElement("div");
+            row.className = "table-row";
+
+            row.innerHTML = `
+                <div class="cell">${m.vehicle || "-"}</div>
+                <div class="cell">${m.driver || "-"}</div>
+                <div class="cell">${m.type || "-"}</div>
+                <div class="cell">${new Date(m.time).toLocaleString()}</div>
+            `;
+
+            box.appendChild(row);
+        });
+    });
+
+});
+</script>
+
+</body>
+</html>

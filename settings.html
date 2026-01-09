@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>الإعدادات</title>
+
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <script type="module" src="assets/js/firebase.js"></script>
+    <script src="assets/js/session.js"></script>
+    <script src="assets/js/roles.js"></script>
+    <script src="assets/js/lang.js"></script>
+    <script src="assets/js/ui.js"></script>
+</head>
+
+<body data-page="settings">
+
+    <!-- Sidebar -->
+    <div id="sidebar"></div>
+
+    <!-- Main -->
+    <div class="main">
+
+        <!-- Topbar -->
+        <div id="topbar"></div>
+
+        <div class="content">
+
+            <h1 class="page-header">الإعدادات</h1>
+
+            <div class="settings-section">
+
+                <h2 class="section-title">إعدادات الحساب</h2>
+
+                <div class="settings-item">
+                    <label>الاسم</label>
+                    <input id="set-name" type="text">
+                </div>
+
+                <div class="settings-item">
+                    <label>البريد الإلكتروني</label>
+                    <input id="set-email" type="text">
+                </div>
+
+                <div class="settings-item">
+                    <label>كلمة المرور</label>
+                    <input id="set-pass" type="password">
+                </div>
+
+                <button class="btn primary" onclick="saveSettings()">حفظ التعديلات</button>
+
+            </div>
+
+        </div>
+
+        <!-- Developer Footer -->
+        <div class="footer">
+            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
+        </div>
+
+    </div>
+
+<script>
+let userId = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    Session.check();
+    Roles.enforcePage();
+
+    userId = localStorage.getItem("user_id");
+
+    DB.users.get(userId).then(user => {
+        if (!user) return;
+
+        document.getElementById("set-name").value = user.name || "";
+        document.getElementById("set-email").value = user.email || "";
+        document.getElementById("set-pass").value = user.password || "";
+    });
+});
+
+function saveSettings() {
+    const name = document.getElementById("set-name").value.trim();
+    const email = document.getElementById("set-email").value.trim();
+    const pass = document.getElementById("set-pass").value.trim();
+
+    if (!name || !email || !pass) {
+        toast("الرجاء تعبئة جميع الحقول");
+        return;
+    }
+
+    DB.users.update(userId, {
+        name,
+        email,
+        password: pass
+    });
+
+    toast("تم حفظ التعديلات بنجاح");
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>الإشعارات</title>
+
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <script type="module" src="assets/js/firebase.js"></script>
+    <script src="assets/js/session.js"></script>
+    <script src="assets/js/roles.js"></script>
+    <script src="assets/js/lang.js"></script>
+    <script src="assets/js/ui.js"></script>
+</head>
+
+<body data-page="notifications">
+
+    <!-- Sidebar -->
+    <div id="sidebar"></div>
+
+    <!-- Main -->
+    <div class="main">
+
+        <!-- Topbar -->
+        <div id="topbar"></div>
+
+        <div class="content">
+
+            <h1 class="page-header">الإشعارات</h1>
+
+            <!-- Table -->
+            <div id="notif-list" class="table"></div>
+
+        </div>
+
+        <!-- Developer Footer -->
+        <div class="footer">
+            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
+        </div>
+
+    </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    Session.check();
+    Roles.enforcePage();
+
+    const userId = localStorage.getItem("user_id");
+    const box = document.getElementById("notif-list");
+
+    DB.notify.watch(userId, data => {
+        box.innerHTML = "";
+
+        if (!data) {
+            box.innerHTML = "<div class='empty'>لا توجد إشعارات</div>";
+            return;
+        }
+
+        const entries = Object.entries(data)
+            .sort((a,b)=>b[1].time - a[1].time);
+
+        entries.forEach(([id, n]) => {
+            const row = document.createElement("div");
+            row.className = "table-row";
+
+            const time = new Date(n.time).toLocaleString();
+
+            row.innerHTML = `
+                <div class="cell">${n.title || "-"}</div>
+                <div class="cell">${n.message || "-"}</div>
+                <div class="cell">${time}</div>
+                <div class="cell">
+                    ${n.read 
+                        ? "<span style='color:green'>مقروء</span>" 
+                        : "<button class='btn small' onclick=\"markRead('" + id + "')\">تحديد كمقروء</button>"
+                    }
+                </div>
+            `;
+
+            box.appendChild(row);
+        });
+    });
+});
+
+function markRead(id) {
+    const userId = localStorage.getItem("user_id");
+    DB.notify.markRead(userId, id);
+}
+</script>
+
+</body>
+</html>

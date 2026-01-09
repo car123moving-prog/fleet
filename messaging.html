@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>التراسل</title>
+
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <script type="module" src="assets/js/firebase.js"></script>
+    <script src="assets/js/session.js"></script>
+    <script src="assets/js/roles.js"></script>
+    <script src="assets/js/lang.js"></script>
+    <script src="assets/js/ui.js"></script>
+</head>
+
+<body data-page="messaging">
+
+    <!-- Sidebar -->
+    <div id="sidebar"></div>
+
+    <!-- Main -->
+    <div class="main">
+
+        <!-- Topbar -->
+        <div id="topbar"></div>
+
+        <div class="content messaging-page">
+
+            <h1 class="page-header">التراسل</h1>
+
+            <div class="messaging-container">
+
+                <!-- Chat List -->
+                <div class="chat-list" id="chat-list"></div>
+
+                <!-- Chat Window -->
+                <div class="chat-window">
+
+                    <div id="chat-messages" class="chat-messages"></div>
+
+                    <div class="chat-input">
+                        <input id="msg-text" type="text" placeholder="اكتب رسالة...">
+                        <button class="btn primary" onclick="sendMessage()">إرسال</button>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Developer Footer -->
+        <div class="footer">
+            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
+        </div>
+
+    </div>
+
+<script>
+let currentChat = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    Session.check();
+    Roles.enforcePage();
+
+    loadChats();
+});
+
+function loadChats() {
+    const list = document.getElementById("chat-list");
+
+    DB.users.watch(data => {
+        list.innerHTML = "";
+
+        if (!data) {
+            list.innerHTML = "<div class='empty'>لا توجد محادثات</div>";
+            return;
+        }
+
+        const entries = Object.entries(data);
+
+        entries.forEach(([id, u]) => {
+            const div = document.createElement("div");
+            div.className = "chat-item";
+            div.textContent = u.name;
+            div.onclick = () => openChat(id);
+
+            list.appendChild(div);
+        });
+    });
+}
+
+function openChat(userId) {
+    currentChat = userId;
+
+    const box = document.getElementById("chat-messages");
+    box.innerHTML = "<div class='empty'>جاري تحميل الرسائل...</div>";
+
+    DB.messaging.watchChat(userId, data => {
+        box.innerHTML = "";
+
+        if (!data) {
+            box.innerHTML = "<div class='empty'>لا توجد رسائل</div>";
+            return;
+        }
+
+        const entries = Object.entries(data)
+            .sort((a,b)=>a[1].time - b[1].time);
+
+        entries.forEach(([id, msg]) => {
+            const div = document.createElement("div");
+            div.className = "msg";
+
+            div.innerHTML = `
+                <div class="msg-text">${msg.text}</div>
+                <div class="msg-time">${new Date(msg.time).toLocaleTimeString()}</div>
+            `;
+
+            box.appendChild(div);
+        });
+
+        box.scrollTop = box.scrollHeight;
+    });
+}
+
+function sendMessage() {
+    if (!currentChat) return;
+
+    const text = document.getElementById("msg-text").value.trim();
+    if (!text) return;
+
+    DB.messaging.send(currentChat, {
+        text,
+        time: Date.now()
+    });
+
+    document.getElementById("msg-text").value = "";
+}
+</script>
+
+</body>
+</html>

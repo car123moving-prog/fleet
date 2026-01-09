@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>تسجيل الدخول</title>
+
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <script type="module" src="assets/js/firebase.js"></script>
+    <script src="assets/js/session.js"></script>
+    <script src="assets/js/lang.js"></script>
+    <script src="assets/js/ui.js"></script>
+</head>
+
+<body data-page="login">
+
+    <div class="login-page">
+        <div class="login-box">
+
+            <img src="assets/img/logo.png" class="login-logo">
+
+            <h2 class="login-title">تسجيل الدخول</h2>
+
+            <input id="email" type="text" placeholder="البريد الإلكتروني">
+            <input id="password" type="password" placeholder="كلمة المرور">
+
+            <button class="btn primary" onclick="login()">دخول</button>
+
+            <div id="error" class="error"></div>
+        </div>
+    </div>
+
+    <!-- Developer Footer -->
+    <div class="footer">
+        © 2025 — Developed by <strong>MOHAMED SAAD</strong>
+    </div>
+
+<script>
+async function login() {
+    const email = document.getElementById("email").value.trim();
+    const pass = document.getElementById("password").value.trim();
+    const error = document.getElementById("error");
+
+    error.textContent = "";
+
+    if (!email || !pass) {
+        error.textContent = "الرجاء إدخال البريد وكلمة المرور";
+        return;
+    }
+
+    // جلب المستخدمين من قاعدة البيانات
+    const users = await DB.users.list();
+    if (!users || !users.data) {
+        error.textContent = "خطأ في الاتصال بالنظام";
+        return;
+    }
+
+    const entries = Object.entries(users.data);
+    const found = entries.find(([id, u]) => u.email === email && u.password === pass);
+
+    if (!found) {
+        error.textContent = "بيانات الدخول غير صحيحة";
+        return;
+    }
+
+    const [userId, user] = found;
+
+    // حفظ الجلسة
+    localStorage.setItem("user_id", userId);
+    localStorage.setItem("user_name", user.name);
+    localStorage.setItem("user_role", user.role);
+
+    // إنشاء جلسة في Firebase
+    DB.sessions.create(userId, "web");
+
+    // الانتقال للوحة التحكم
+    window.location.href = "dashboard.html";
+}
+</script>
+
+</body>
+</html>
