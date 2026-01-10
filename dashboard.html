@@ -1,144 +1,97 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>لوحة التحكم</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>الداشبورد</title>
+
+  <style>
+    body { margin: 0; font-family: sans-serif; direction: rtl; background: #f5f5f5; }
+
+    .sidebar {
+      width: 220px; background: #1e1e2f; color: white;
+      height: 100vh; position: fixed; top: 0; right: 0; padding-top: 20px;
+    }
+    .sidebar-menu { list-style: none; padding: 0; }
+    .sidebar-menu li { margin: 10px 0; }
+    .sidebar-menu a {
+      color: white; text-decoration: none; padding: 10px 20px; display: block;
+    }
+    .sidebar-menu a:hover { background: #33334d; }
+
+    .topbar {
+      height: 50px; background: #ffffff; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 15px; margin-right: 220px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .content { margin-right: 220px; padding: 20px; }
+
+    .card {
+      background: white; padding: 20px; border-radius: 8px;
+      margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+  </style>
 </head>
 
 <body>
 
-  <div id="sidebar"></div>
-  <div id="topbar"></div>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <ul class="sidebar-menu">
+      <li><a href="dashboard.html">الداشبورد</a></li>
+      <li><a href="vehicles.html">المركبات</a></li>
+      <li><a href="drivers.html">السائقين</a></li>
+      <li><a href="maintenance.html">الصيانة</a></li>
+      <li><a href="documents.html">الوثائق</a></li>
+      <li><a href="users.html">المستخدمين</a></li>
+      <li><a href="settings.html">الإعدادات</a></li>
+      <li><a href="#" id="logoutBtn">تسجيل الخروج</a></li>
+    </ul>
+  </div>
 
-  <main class="page-content">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div>لوحة التحكم</div>
+    <div id="username-display"></div>
+  </div>
 
-    <h1>لوحة التحكم</h1>
+  <!-- Content -->
+  <div class="content">
+    <h1>مرحبًا بك في لوحة التحكم</h1>
 
-    <!-- الإحصائيات -->
-    <div class="stats-grid">
-
-      <div class="stat-card">
-        <h3>عدد المركبات</h3>
-        <div class="stat-number" id="statVehicles">0</div>
-      </div>
-
-      <div class="stat-card">
-        <h3>عدد السائقين</h3>
-        <div class="stat-number" id="statDrivers">0</div>
-      </div>
-
-      <div class="stat-card">
-        <h3>الحركات النشطة</h3>
-        <div class="stat-number" id="statActive">0</div>
-      </div>
-
-      <div class="stat-card">
-        <h3>سجلات الصيانة</h3>
-        <div class="stat-number" id="statMaintenance">0</div>
-      </div>
-
+    <div class="card">
+      <h3>إحصائيات سريعة</h3>
+      <p>عدد المركبات: <span id="vehicles-count">...</span></p>
+      <p>عدد السائقين: <span id="drivers-count">...</span></p>
+      <p>عدد المستخدمين: <span id="users-count">...</span></p>
     </div>
+  </div>
 
-    <!-- آخر الحركات -->
-    <div class="table-card">
-      <h2>آخر الحركات</h2>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>المركبة</th>
-            <th>السائق</th>
-            <th>الوجهة</th>
-            <th>الوقت</th>
-          </tr>
-        </thead>
-        <tbody id="recentMovements"></tbody>
-      </table>
-    </div>
+  <!-- Scripts -->
+  <script type="module">
+    import { auth, db, signOut, ref, onValue } from "./firebase.js";
 
-    <!-- آخر الإشعارات -->
-    <div class="table-card">
-      <h2>آخر الإشعارات</h2>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>العنوان</th>
-            <th>الفئة</th>
-            <th>التاريخ</th>
-          </tr>
-        </thead>
-        <tbody id="recentNotifications"></tbody>
-      </table>
-    </div>
+    // تسجيل الخروج
+    document.getElementById("logoutBtn").onclick = () => {
+      signOut(auth).then(() => location.href = "login.html");
+    };
 
-  </main>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-  <script src="firebase.js"></script>
-  <script src="session.js"></script>
-  <script src="permissions.js"></script>
-
-  <script>
-    protectPage("view_dashboard");
-
-    // تحميل الواجهة
-    fetch("sidebar.html").then(r => r.text()).then(html => document.getElementById("sidebar").innerHTML = html);
-    fetch("topbar.html").then(r => r.text()).then(html => document.getElementById("topbar").innerHTML = html);
-
-    // إحصائيات
-    readData("vehicles", data => {
-      document.getElementById("statVehicles").textContent = data ? Object.keys(data).length : 0;
+    // تحميل الإحصائيات
+    onValue(ref(db, "vehicles"), snap => {
+      document.getElementById("vehicles-count").innerText = snap.size || snap.numChildren();
     });
 
-    readData("drivers", data => {
-      document.getElementById("statDrivers").textContent = data ? Object.keys(data).length : 0;
+    onValue(ref(db, "drivers"), snap => {
+      document.getElementById("drivers-count").innerText = snap.size || snap.numChildren();
     });
 
-    readData("movements", data => {
-      if (!data) return;
-
-      const list = Object.values(data);
-      const active = list.filter(m => !m.end).length;
-      document.getElementById("statActive").textContent = active;
-
-      const recent = list.slice(-5).reverse();
-      document.getElementById("recentMovements").innerHTML =
-        recent.map(m => `
-          <tr>
-            <td>${m.vehicle}</td>
-            <td>${m.driver}</td>
-            <td>${m.destination}</td>
-            <td>${m.start}</td>
-          </tr>
-        `).join("");
-    });
-
-    readData("maintenance", data => {
-      document.getElementById("statMaintenance").textContent = data ? Object.keys(data).length : 0;
-    });
-
-    readData("notifications", data => {
-      if (!data) return;
-
-      const list = Object.values(data)
-        .sort((a, b) => b.date - a.date)
-        .slice(0, 5);
-
-      document.getElementById("recentNotifications").innerHTML =
-        list.map(n => `
-          <tr>
-            <td>${n.title}</td>
-            <td><span class="badge badge-${n.type}">${n.type}</span></td>
-            <td>${new Date(n.date).toLocaleString("ar-AE")}</td>
-          </tr>
-        `).join("");
+    onValue(ref(db, "users"), snap => {
+      document.getElementById("users-count").innerText = snap.size || snap.numChildren();
     });
   </script>
+
+  <script type="module" src="session.js"></script>
+  <script type="module" src="permissions.js"></script>
 
 </body>
 </html>
