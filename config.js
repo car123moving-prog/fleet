@@ -12,7 +12,6 @@ const firebaseConfig = {
   appId: "1:266130114678:web:56e89b5922749a00c4f757"
 };
 
-// استخدم النسخة القديمة المتوافقة مع كل الصفحات
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -110,21 +109,6 @@ function printCard(button) {
           margin: 0;
           font-size: 1.8rem;
           color: #0d6efd;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 20px;
-        }
-        table td {
-          padding: 10px;
-          border-bottom: 1px solid #e5e5e5;
-          font-size: 1.1rem;
-        }
-        table td.label {
-          font-weight: bold;
-          color: #0d6efd;
-          width: 35%;
         }
       </style>
     </head>
