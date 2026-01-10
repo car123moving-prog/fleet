@@ -1,205 +1,199 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>الصيانة</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>إدارة الصيانة</title>
+
+  <style>
+    body { margin: 0; font-family: sans-serif; direction: rtl; background: #f5f5f5; }
+
+    .sidebar {
+      width: 220px; background: #1e1e2f; color: white;
+      height: 100vh; position: fixed; top: 0; right: 0; padding-top: 20px;
+    }
+    .sidebar-menu { list-style: none; padding: 0; }
+    .sidebar-menu li { margin: 10px 0; }
+    .sidebar-menu a {
+      color: white; text-decoration: none; padding: 10px 20px; display: block;
+    }
+    .sidebar-menu a:hover { background: #33334d; }
+
+    .topbar {
+      height: 50px; background: #ffffff; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 15px; margin-right: 220px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .content { margin-right: 220px; padding: 20px; }
+
+    table {
+      width: 100%; border-collapse: collapse; background: white;
+    }
+    th, td {
+      padding: 12px; border-bottom: 1px solid #ddd; text-align: right;
+    }
+    th { background: #f0f0f0; }
+
+    button {
+      padding: 6px 12px; border: none; background: #1e1e2f;
+      color: white; cursor: pointer; border-radius: 4px;
+    }
+    button:hover { background: #33334d; }
+
+    .add-box {
+      background: white; padding: 20px; margin-bottom: 20px;
+      border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    input, select {
+      padding: 8px; width: 200px; margin-left: 10px;
+    }
+  </style>
 </head>
 
 <body>
 
-<div id="sidebar"></div>
-<div id="topbar"></div>
-
-<main class="page-content">
-
-  <h1>إدارة الصيانة</h1>
-
-  <div class="page-header">
-    <button class="btn primary" onclick="openMaintenanceForm()">+ إضافة سجل صيانة</button>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <ul class="sidebar-menu">
+      <li><a href="dashboard.html">الداشبورد</a></li>
+      <li><a href="vehicles.html">المركبات</a></li>
+      <li><a href="drivers.html">السائقين</a></li>
+      <li><a href="maintenance.html">الصيانة</a></li>
+      <li><a href="documents.html">الوثائق</a></li>
+      <li><a href="users.html">المستخدمين</a></li>
+      <li><a href="settings.html">الإعدادات</a></li>
+      <li><a href="#" id="logoutBtn">تسجيل الخروج</a></li>
+    </ul>
   </div>
 
-  <div class="table-tools">
-    <input id="searchInput" type="text" placeholder="بحث..." oninput="applySearch()" />
+  <!-- Topbar -->
+  <div class="topbar">
+    <div>إدارة الصيانة</div>
+    <div id="username-display"></div>
   </div>
 
-  <div class="table-card">
-    <table class="table">
+  <!-- Content -->
+  <div class="content">
+
+    <div class="add-box">
+      <h3>إضافة سجل صيانة جديد</h3>
+
+      <select id="vehicle">
+        <option value="">اختر المركبة</option>
+      </select>
+
+      <input id="type" type="text" placeholder="نوع الصيانة">
+      <input id="cost" type="number" placeholder="التكلفة">
+      <input id="date" type="date">
+
+      <button id="addMaintenanceBtn">إضافة</button>
+    </div>
+
+    <h3>سجلات الصيانة</h3>
+
+    <table>
       <thead>
         <tr>
           <th>المركبة</th>
-          <th>النوع</th>
+          <th>نوع الصيانة</th>
+          <th>التكلفة</th>
           <th>التاريخ</th>
-          <th>الحالة</th>
           <th>إجراءات</th>
         </tr>
       </thead>
-      <tbody id="tableBody"></tbody>
+      <tbody id="maintenance-table"></tbody>
     </table>
+
   </div>
 
-  <div id="pagination" class="pagination"></div>
+  <!-- Scripts -->
+  <script type="module">
+    import {
+      auth,
+      db,
+      signOut,
+      ref,
+      set,
+      onValue,
+      remove
+    } from "./firebase.js";
 
-</main>
-
-<!-- نافذة إضافة / تعديل صيانة -->
-<div id="maintenanceModal" class="modal hidden">
-  <div class="modal-content">
-    <h2 id="modalTitle">إضافة سجل صيانة</h2>
-
-    <label>المركبة</label>
-    <select id="m_vehicle"></select>
-
-    <label>نوع الصيانة</label>
-    <input id="m_type" type="text">
-
-    <label>التاريخ</label>
-    <input id="m_date" type="date">
-
-    <label>الحالة</label>
-    <select id="m_status">
-      <option value="pending">قيد التنفيذ</option>
-      <option value="done">منتهية</option>
-      <option value="late">متأخرة</option>
-    </select>
-
-    <div class="modal-actions">
-      <button class="btn primary" onclick="saveMaintenance()">حفظ</button>
-      <button class="btn" onclick="closeMaintenanceForm()">إلغاء</button>
-    </div>
-  </div>
-</div>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-<script src="firebase.js"></script>
-<script src="session.js"></script>
-<script src="permissions.js"></script>
-
-<script>
-  protectPage("manage_maintenance");
-
-  let fullData = [];
-  let filteredData = [];
-  let pageSize = 8;
-  let currentPage = 1;
-  let editId = null;
-
-  fetch("sidebar.html").then(r => r.text()).then(html => sidebar.innerHTML = html);
-  fetch("topbar.html").then(r => r.text()).then(html => topbar.innerHTML = html);
-
-  readData("vehicles", data => {
-    if (!data) return;
-    m_vehicle.innerHTML = Object.values(data)
-      .map(v => `<option value="${v.number}">${v.number} - ${v.type}</option>`)
-      .join("");
-  });
-
-  readData("maintenance", data => {
-    if (!data) return;
-    fullData = Object.entries(data).map(([id, m]) => ({ id, ...m }));
-    filteredData = fullData;
-    renderTable();
-  });
-
-  function generateRow(item) {
-    return `
-      <tr>
-        <td>${item.vehicle}</td>
-        <td>${item.type}</td>
-        <td>${item.date}</td>
-        <td><span class="badge badge-status-${item.status}">${item.status}</span></td>
-        <td>
-          <button class="btn small" onclick="editMaintenance('${item.id}', '${item.vehicle}', '${item.type}', '${item.date}', '${item.status}')">تعديل</button>
-          <button class="btn small danger" onclick="deleteMaintenance('${item.id}')">حذف</button>
-        </td>
-      </tr>
-    `;
-  }
-
-  function renderTable() {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    const pageItems = filteredData.slice(start, end);
-    tableBody.innerHTML = pageItems.map(generateRow).join("");
-    renderPagination();
-  }
-
-  function renderPagination() {
-    const pages = Math.ceil(filteredData.length / pageSize);
-    pagination.innerHTML = "";
-    for (let i = 1; i <= pages; i++) {
-      const btn = document.createElement("button");
-      btn.textContent = i;
-      if (i === currentPage) btn.classList.add("active");
-      btn.onclick = () => { currentPage = i; renderTable(); };
-      pagination.appendChild(btn);
-    }
-  }
-
-  function applySearch() {
-    const q = searchInput.value.toLowerCase();
-    filteredData = fullData.filter(item =>
-      JSON.stringify(item).toLowerCase().includes(q)
-    );
-    currentPage = 1;
-    renderTable();
-  }
-
-  function openMaintenanceForm() {
-    editId = null;
-    modalTitle.textContent = "إضافة سجل صيانة";
-    m_type.value = "";
-    m_date.value = "";
-    m_status.value = "pending";
-    maintenanceModal.classList.remove("hidden");
-  }
-
-  function closeMaintenanceForm() {
-    maintenanceModal.classList.add("hidden");
-  }
-
-  async function saveMaintenance() {
-    const data = {
-      vehicle: m_vehicle.value,
-      type: m_type.value.trim(),
-      date: m_date.value,
-      status: m_status.value
+    // تسجيل الخروج
+    document.getElementById("logoutBtn").onclick = () => {
+      signOut(auth).then(() => location.href = "login.html");
     };
 
-    if (!data.vehicle || !data.type || !data.date) {
-      alert("يرجى إدخال البيانات");
-      return;
-    }
+    // تحميل المركبات في القائمة
+    onValue(ref(db, "vehicles"), snap => {
+      const select = document.getElementById("vehicle");
+      select.innerHTML = `<option value="">اختر المركبة</option>`;
 
-    if (editId) {
-      await updateData("maintenance/" + editId, data);
-    } else {
-      await pushData("maintenance", data);
-    }
+      snap.forEach(child => {
+        const v = child.val();
+        const id = child.key;
+        select.innerHTML += `<option value="${id}">${v.plate} - ${v.model}</option>`;
+      });
+    });
 
-    closeMaintenanceForm();
-  }
+    // إضافة سجل صيانة
+    document.getElementById("addMaintenanceBtn").onclick = () => {
+      const vehicle = document.getElementById("vehicle").value;
+      const type = document.getElementById("type").value.trim();
+      const cost = document.getElementById("cost").value.trim();
+      const date = document.getElementById("date").value;
 
-  function editMaintenance(id, vehicle, type, date, status) {
-    editId = id;
-    modalTitle.textContent = "تعديل سجل صيانة";
-    m_vehicle.value = vehicle;
-    m_type.value = type;
-    m_date.value = date;
-    m_status.value = status;
-    maintenanceModal.classList.remove("hidden");
-  }
+      if (!vehicle || !type || !cost || !date) {
+        alert("يرجى تعبئة جميع الحقول");
+        return;
+      }
 
-  async function deleteMaintenance(id) {
-    if (!confirm("هل أنت متأكد؟")) return;
-    await deleteData("maintenance/" + id);
-  }
-</script>
+      const id = Date.now();
+
+      set(ref(db, "maintenance/" + id), {
+        vehicle,
+        type,
+        cost,
+        date,
+        created_at: Date.now()
+      });
+
+      alert("تمت إضافة سجل الصيانة بنجاح");
+    };
+
+    // تحميل السجلات
+    onValue(ref(db, "maintenance"), snap => {
+      const table = document.getElementById("maintenance-table");
+      table.innerHTML = "";
+
+      snap.forEach(child => {
+        const m = child.val();
+        const id = child.key;
+
+        table.innerHTML += `
+          <tr>
+            <td>${m.vehicle}</td>
+            <td>${m.type}</td>
+            <td>${m.cost}</td>
+            <td>${m.date}</td>
+            <td>
+              <button onclick="deleteMaintenance('${id}')">حذف</button>
+            </td>
+          </tr>
+        `;
+      });
+    });
+
+    // حذف سجل
+    window.deleteMaintenance = (id) => {
+      if (!confirm("هل أنت متأكد من الحذف؟")) return;
+      remove(ref(db, "maintenance/" + id));
+      alert("تم حذف السجل");
+    };
+  </script>
+
+  <script type="module" src="session.js"></script>
+  <script type="module" src="permissions.js"></script>
 
 </body>
 </html>
