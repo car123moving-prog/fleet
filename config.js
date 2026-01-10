@@ -1,5 +1,5 @@
 /* ============================================================
-   Firebase Initialization
+   Firebase Initialization (Compat SDK)
    ============================================================ */
 
 const firebaseConfig = {
@@ -12,6 +12,7 @@ const firebaseConfig = {
   appId: "1:266130114678:web:56e89b5922749a00c4f757"
 };
 
+// استخدم النسخة القديمة المتوافقة مع كل الصفحات
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
