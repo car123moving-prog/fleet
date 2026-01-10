@@ -1,4 +1,181 @@
-    async function saveMovement() {
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>الحركات</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+<div id="sidebar"></div>
+<div id="topbar"></div>
+
+<main class="page-content">
+
+  <h1>إدارة الحركات</h1>
+
+  <div class="page-header">
+    <button class="btn primary" onclick="openMovementForm()">+ إضافة حركة</button>
+  </div>
+
+  <div class="table-tools">
+    <input id="searchInput" type="text" placeholder="بحث..." oninput="applySearch()" />
+  </div>
+
+  <div class="table-card">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>المركبة</th>
+          <th>السائق</th>
+          <th>الوجهة</th>
+          <th>الوقت</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <div id="pagination" class="pagination"></div>
+
+</main>
+
+<!-- نافذة إضافة / تعديل حركة -->
+<div id="movementModal" class="modal hidden">
+  <div class="modal-content">
+    <h2 id="modalTitle">إضافة حركة</h2>
+
+    <label>المركبة</label>
+    <select id="m_vehicle"></select>
+
+    <label>السائق</label>
+    <select id="m_driver"></select>
+
+    <label>الوجهة</label>
+    <input id="m_destination" type="text">
+
+    <label>وقت الانطلاق</label>
+    <input id="m_start" type="datetime-local">
+
+    <div class="modal-actions">
+      <button class="btn primary" onclick="saveMovement()">حفظ</button>
+      <button class="btn" onclick="closeMovementForm()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<script src="firebase.js"></script>
+<script src="session.js"></script>
+<script src="permissions.js"></script>
+
+<script>
+  protectPage("manage_movements");
+
+  let fullData = [];
+  let filteredData = [];
+  let pageSize = 8;
+  let currentPage = 1;
+  let editId = null;
+
+  fetch("sidebar.html").then(r => r.text()).then(html => sidebar.innerHTML = html);
+  fetch("topbar.html").then(r => r.text()).then(html => topbar.innerHTML = html);
+
+  readData("vehicles", data => {
+    if (!data) return;
+    m_vehicle.innerHTML = Object.values(data)
+      .map(v => `<option value="${v.number}">${v.number} - ${v.type}</option>`)
+      .join("");
+  });
+
+  readData("drivers", data => {
+    if (!data) return;
+    m_driver.innerHTML = Object.values(data)
+      .map(d => `<option value="${d.name}">${d.name}</option>`)
+      .join("");
+  });
+
+  readData("movements", data => {
+    if (!data) return;
+    fullData = Object.entries(data).map(([id, m]) => ({ id, ...m }));
+    filteredData = fullData;
+    renderTable();
+  });
+
+  function generateRow(item) {
+    return `
+      <tr>
+        <td>${item.vehicle}</td>
+        <td>${item.driver}</td>
+        <td>${item.destination}</td>
+        <td>${item.start}</td>
+        <td>
+          <button class="btn small" onclick="editMovement('${item.id}', '${item.vehicle}', '${item.driver}', '${item.destination}', '${item.start}')">تعديل</button>
+          <button class="btn small danger" onclick="deleteMovement('${item.id}')">حذف</button>
+        </td>
+      </tr>
+    `;
+  }
+
+  function renderTable() {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    const pageItems = filteredData.slice(start, end);
+    tableBody.innerHTML = pageItems.map(generateRow).join("");
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const pages = Math.ceil(filteredData.length / pageSize);
+    pagination.innerHTML = "";
+    for (let i = 1; i <= pages; i++) {
+      const btn = document.createElement("button");
+      btn.textContent = i;
+      if (i === currentPage) btn.classList.add("active");
+      btn.onclick = () => { currentPage = i; renderTable(); };
+      pagination.appendChild(btn);
+    }
+  }
+
+  function applySearch() {
+    const q = searchInput.value.toLowerCase();
+    filteredData = fullData.filter(item =>
+      JSON.stringify(item).toLowerCase().includes(q)
+    );
+    currentPage = 1;
+    renderTable();
+  }
+
+  function openMovementForm() {
+    editId = null;
+    modalTitle.textContent = "إضافة حركة";
+    m_destination.value = "";
+    m_start.value = "";
+    movementModal.classList.remove("hidden");
+  }
+
+  function closeMovementForm() {
+    movementModal.classList.add("hidden");
+  }
+
+  async function saveMovement() {
+    const data = {
+      vehicle: m_vehicle.value,
+      driver: m_driver.value,
+      destination: m_destination.value.trim(),
+      start: m_start.value
+    };
+
+    if
+
+        async function saveMovement() {
       const data = {
         vehicle: m_vehicle.value,
         driver: m_driver.value,
