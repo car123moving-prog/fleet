@@ -1,144 +1,96 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>التراسل</title>
-
-    <link rel="stylesheet" href="assets/css/style.css">
-
-    <script type="module" src="assets/js/firebase.js"></script>
-    <script src="assets/js/session.js"></script>
-    <script src="assets/js/roles.js"></script>
-    <script src="assets/js/lang.js"></script>
-    <script src="assets/js/ui.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title data-lang="messaging_page">الرسائل</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+<body>
+  <div id="sidebar"></div>
+  <div id="topbar"></div>
 
-<body data-page="messaging">
+  <main class="container messaging">
+    <aside class="contacts">
+      <h3 data-lang="contacts">المستخدمون</h3>
+      <ul id="contactsList"></ul>
+    </aside>
 
-    <!-- Sidebar -->
-    <div id="sidebar"></div>
+    <section class="chat">
+      <div class="chat-header">
+        <h3 id="chatWith">—</h3>
+      </div>
+      <div class="chat-body" id="chatBody"></div>
+      <div class="chat-input">
+        <input id="messageInput" placeholder="" data-lang-placeholder="message_placeholder" />
+        <button id="sendMsg" class="btn primary" data-lang="send">إرسال</button>
+      </div>
+    </section>
+  </main>
 
-    <!-- Main -->
-    <div class="main">
+  <script src="firebase.js"></script>
+  <script src="session.js"></script>
+  <script src="ui.js"></script>
+  <script src="lang.js"></script>
+  <script>
+    ensureAuthRedirect();
+    let currentUser = null;
+    let currentChatUserId = null;
 
-        <!-- Topbar -->
-        <div id="topbar"></div>
-
-        <div class="content messaging-page">
-
-            <h1 class="page-header">التراسل</h1>
-
-            <div class="messaging-container">
-
-                <!-- Chat List -->
-                <div class="chat-list" id="chat-list"></div>
-
-                <!-- Chat Window -->
-                <div class="chat-window">
-
-                    <div id="chat-messages" class="chat-messages"></div>
-
-                    <div class="chat-input">
-                        <input id="msg-text" type="text" placeholder="اكتب رسالة...">
-                        <button class="btn primary" onclick="sendMessage()">إرسال</button>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <!-- Developer Footer -->
-        <div class="footer">
-            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
-        </div>
-
-    </div>
-
-<script>
-let currentChat = null;
-
-document.addEventListener("DOMContentLoaded", () => {
-
-    Session.check();
-    Roles.enforcePage();
-
-    loadChats();
-});
-
-function loadChats() {
-    const list = document.getElementById("chat-list");
-
-    DB.users.watch(data => {
-        list.innerHTML = "";
-
-        if (!data) {
-            list.innerHTML = "<div class='empty'>لا توجد محادثات</div>";
-            return;
-        }
-
-        const entries = Object.entries(data);
-
-        entries.forEach(([id, u]) => {
-            const div = document.createElement("div");
-            div.className = "chat-item";
-            div.textContent = u.name;
-            div.onclick = () => openChat(id);
-
-            list.appendChild(div);
-        });
-    });
-}
-
-function openChat(userId) {
-    currentChat = userId;
-
-    const box = document.getElementById("chat-messages");
-    box.innerHTML = "<div class='empty'>جاري تحميل الرسائل...</div>";
-
-    DB.messaging.watchChat(userId, data => {
-        box.innerHTML = "";
-
-        if (!data) {
-            box.innerHTML = "<div class='empty'>لا توجد رسائل</div>";
-            return;
-        }
-
-        const entries = Object.entries(data)
-            .sort((a,b)=>a[1].time - b[1].time);
-
-        entries.forEach(([id, msg]) => {
-            const div = document.createElement("div");
-            div.className = "msg";
-
-            div.innerHTML = `
-                <div class="msg-text">${msg.text}</div>
-                <div class="msg-time">${new Date(msg.time).toLocaleTimeString()}</div>
-            `;
-
-            box.appendChild(div);
-        });
-
-        box.scrollTop = box.scrollHeight;
-    });
-}
-
-function sendMessage() {
-    if (!currentChat) return;
-
-    const text = document.getElementById("msg-text").value.trim();
-    if (!text) return;
-
-    DB.messaging.send(currentChat, {
-        text,
-        time: Date.now()
+    firebaseAuthOnChange(async (user)=>{
+      currentUser = user;
+      await loadContacts();
     });
 
-    document.getElementById("msg-text").value = "";
-}
-</script>
+    async function loadContacts(){
+      const users = await readOnce('users') || {};
+      const ul = document.getElementById('contactsList');
+      ul.innerHTML = '';
+      Object.entries(users).forEach(([id,u])=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<button class="contact-btn" data-id="${id}">${escapeHtml(u.name||u.email)}</button>`;
+        ul.appendChild(li);
+      });
+    }
 
+    document.getElementById('contactsList').addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      currentChatUserId = btn.dataset.id;
+      document.getElementById('chatWith').textContent = btn.textContent;
+      loadChat();
+    });
+
+    async function loadChat(){
+      if(!currentUser || !currentChatUserId) return;
+      const msgs = await readOnce('messages') || {};
+      const arr = Object.values(msgs).filter(m =>
+        (m.senderId===currentUser.uid && m.receiverId===currentChatUserId) ||
+        (m.senderId===currentChatUserId && m.receiverId===currentUser.uid)
+      ).sort((a,b)=> (a.timestamp||0)-(b.timestamp||0));
+      const body = document.getElementById('chatBody');
+      body.innerHTML = '';
+      arr.forEach(m=>{
+        const div = document.createElement('div');
+        div.className = 'msg ' + (m.senderId===currentUser.uid ? 'out' : 'in');
+        div.innerHTML = `<div class="bubble">${escapeHtml(m.text)}<div class="time">${new Date(m.timestamp||0).toLocaleTimeString()}</div></div>`;
+        body.appendChild(div);
+      });
+      body.scrollTop = body.scrollHeight;
+    }
+
+    document.getElementById('sendMsg').addEventListener('click', async ()=>{
+      const text = document.getElementById('messageInput').value.trim();
+      if(!text || !currentChatUserId || !currentUser) return;
+      const obj = { senderId: currentUser.uid, receiverId: currentChatUserId, text, timestamp: Date.now() };
+      await pushData('messages', obj);
+      document.getElementById('messageInput').value = '';
+      loadChat();
+    });
+
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+
+    applyTranslations();
+  </script>
 </body>
 </html>
