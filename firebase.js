@@ -1,5 +1,6 @@
-// firebase.js — النسخة النهائية
+// firebase.js — النسخة النهائية Firebase v8
 
+// بيانات مشروعك
 const firebaseConfig = {
   apiKey: "AIzaSyDkJ85bI9-6Q_N97dqhBhpWgytqKoM6VH0",
   authDomain: "fleet-123.firebaseapp.com",
@@ -15,6 +16,29 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.database();
+
+// تسجيل الدخول
+async function login(email, password) {
+  const res = await auth.signInWithEmailAndPassword(email, password);
+  return res.user;
+}
+
+// تسجيل دخول ضيف
+async function loginAsGuest() {
+  const res = await auth.signInAnonymously();
+  return res.user;
+}
+
+// خروج
+async function logout() {
+  await auth.signOut();
+  window.location.href = "login.html";
+}
+
+// مراقبة المستخدم
+function firebaseAuthOnChange(callback) {
+  auth.onAuthStateChanged(user => callback(user));
+}
 
 // قراءة
 async function readOnce(path) {
@@ -42,37 +66,13 @@ async function deleteData(path) {
   return db.ref(path).remove();
 }
 
-// تسجيل الدخول
-async function login(email, password) {
-  const res = await auth.signInWithEmailAndPassword(email, password);
-  return res.user;
-}
-
-// ضيف
-async function loginAsGuest() {
-  const res = await auth.signInAnonymously();
-  return res.user;
-}
-
-// خروج
-async function logout() {
-  await auth.signOut();
-  window.location.href = "login.html";
-}
-
-// مراقبة المستخدم
-function firebaseAuthOnChange(callback) {
-  auth.onAuthStateChanged(user => callback(user));
-}
-
 // تصدير
+window.login = login;
+window.loginAsGuest = loginAsGuest;
+window.logout = logout;
+window.firebaseAuthOnChange = firebaseAuthOnChange;
+
 window.readOnce = readOnce;
 window.pushData = pushData;
 window.updateData = updateData;
 window.deleteData = deleteData;
-
-window.login = login;
-window.loginAsGuest = loginAsGuest;
-window.logout = logout;
-
-window.firebaseAuthOnChange = firebaseAuthOnChange;
