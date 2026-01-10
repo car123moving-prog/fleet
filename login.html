@@ -5,64 +5,89 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>تسجيل الدخول</title>
   <link rel="stylesheet" href="style.css" />
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    .login-box {
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .login-box img {
+      max-width: 200px;
+      margin-bottom: 25px;
+      filter: drop-shadow(0 3px 6px #0004);
+    }
+
+    .login-box h2 {
+      margin-bottom: 20px;
+      font-size: 22px;
+      color: var(--text);
+    }
+
+    .login-box input {
+      margin-bottom: 15px;
+    }
+
+    .login-box button {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
 
 <body>
 
-  <div class="auth-container">
-    <div class="auth-card">
+  <div class="login-box">
+    <img src="logo.png" alt="AL MASAOOD Logo" />
 
-      <h1>تسجيل الدخول</h1>
+    <h2>تسجيل الدخول إلى النظام</h2>
 
-      <div class="form-group">
-        <label>البريد الإلكتروني</label>
-        <input id="email" type="email" placeholder="example@domain.com" />
-      </div>
+    <input id="email" type="email" placeholder="البريد الإلكتروني" />
+    <input id="password" type="password" placeholder="كلمة المرور" />
 
-      <div class="form-group">
-        <label>كلمة المرور</label>
-        <input id="password" type="password" placeholder="••••••••" />
-      </div>
-
-      <div class="form-actions">
-        <button id="loginBtn" class="btn primary">دخول</button>
-        <button id="guestBtn" class="btn">تجربة</button>
-      </div>
-
-      <p id="authMessage" class="auth-note"></p>
-
-    </div>
+    <button class="btn primary" onclick="login()">دخول</button>
   </div>
 
-  <!-- 🔥 مكتبات Firebase v8 -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-  <!-- ملفات النظام -->
   <script src="firebase.js"></script>
-  <script src="session.js"></script>
 
   <script>
-    document.getElementById('loginBtn').addEventListener('click', async () => {
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      const msg = document.getElementById('authMessage');
-      msg.textContent = "";
+    async function login() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
 
-      login(email, password).catch(err => {
-        msg.textContent = err.message;
-      });
-    });
+      if (!email || !password) return alert("يرجى إدخال البريد وكلمة المرور");
 
-    document.getElementById('guestBtn').addEventListener('click', async () => {
-      const msg = document.getElementById('authMessage');
-      msg.textContent = "";
-
-      loginAsGuest().catch(err => {
-        msg.textContent = err.message;
-      });
-    });
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        alert("خطأ: " + err.message);
+      }
+    }
   </script>
 
 </body>
