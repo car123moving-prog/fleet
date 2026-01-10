@@ -3,12 +3,7 @@
 // ====== الجزء 1: imports + AuthGuard + App ======
 import React, { useEffect, useState } from "react";
 import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate
-} from "react-router-dom";
-
+  import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { auth } from "./firebase";
 import {
   getVehicles,
@@ -52,7 +47,7 @@ export default function App() {
   if (!authReady) return null;
 
   return (
-    <BrowserRouter>
+   <HashRouter>
       <Routes>
         <Route path="/login" element={<LoginPage setTheme={setTheme} />} />
 
