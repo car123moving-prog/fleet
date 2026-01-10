@@ -3,124 +3,189 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title data-lang="documents_page">الوثائق</title>
+  <title>الوثائق</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
-  <div id="sidebar"></div>
-  <div id="topbar"></div>
 
-  <main class="container">
-    <header class="page-header">
-      <h1 data-lang="documents_page">الوثائق</h1>
-      <div>
-        <button id="addDocBtn" class="btn primary" data-lang="add_document">إضافة وثيقة</button>
-      </div>
-    </header>
+<div id="sidebar"></div>
+<div id="topbar"></div>
 
-    <section>
-      <table class="table" id="docsTable">
-        <thead>
-          <tr>
-            <th data-lang="col_id">ID</th>
-            <th data-lang="col_title">العنوان</th>
-            <th data-lang="col_type">النوع</th>
-            <th data-lang="col_related">متعلق بـ</th>
-            <th data-lang="col_time">الوقت</th>
-            <th data-lang="col_actions">إجراءات</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
+<main class="page-content">
 
-  <div id="modal" class="modal hidden">
-    <div class="modal-content">
-      <h3 id="modalTitle" data-lang="add_document">إضافة وثيقة</h3>
-      <div class="form-group">
-        <label data-lang="doc_title">العنوان</label>
-        <input id="docTitle" />
-      </div>
-      <div class="form-group">
-        <label data-lang="doc_type">النوع</label>
-        <input id="docType" />
-      </div>
-      <div class="form-group">
-        <label data-lang="doc_related">متعلق بـ (vehicle/driver)</label>
-        <input id="docRelated" />
-      </div>
-      <div class="form-actions">
-        <button id="saveDoc" class="btn primary" data-lang="save">حفظ</button>
-        <button id="cancelModal" class="btn" data-lang="cancel">إلغاء</button>
-      </div>
-    </div>
+  <h1>إدارة الوثائق</h1>
+
+  <div class="page-header">
+    <button class="btn primary" onclick="openDocumentForm()">+ إضافة وثيقة</button>
   </div>
 
-  <script src="firebase.js"></script>
-  <script src="session.js"></script>
-  <script src="ui.js"></script>
-  <script src="lang.js"></script>
-  <script>
-    ensureAuthRedirect();
+  <div class="table-tools">
+    <input id="searchInput" type="text" placeholder="بحث..." oninput="applySearch()" />
+  </div>
 
-    const modal = document.getElementById('modal');
-    document.getElementById('addDocBtn').addEventListener('click', ()=> {
-      modal.classList.remove('hidden');
-      document.getElementById('docTitle').value = '';
-      document.getElementById('docType').value = '';
-      document.getElementById('docRelated').value = '';
-    });
-    document.getElementById('cancelModal').addEventListener('click', ()=> modal.classList.add('hidden'));
+  <div class="table-card">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>العنوان</th>
+          <th>النوع</th>
+          <th>الرابط</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
 
-    document.getElementById('saveDoc').addEventListener('click', async ()=>{
-      const title = document.getElementById('docTitle').value.trim();
-      const type = document.getElementById('docType').value.trim();
-      const related = document.getElementById('docRelated').value.trim();
-      if(!title){ alert('Enter title'); return; }
-      const obj = { title, type, related, timestamp: Date.now() };
-      await pushData('documents', obj);
-      modal.classList.add('hidden');
-      loadDocs();
-    });
+  <div id="pagination" class="pagination"></div>
 
-    async function loadDocs(){
-      const docs = await readOnce('documents') || {};
-      const tbody = document.querySelector('#docsTable tbody');
-      tbody.innerHTML = '';
-      Object.entries(docs).sort((a,b)=> (b[1].timestamp||0)-(a[1].timestamp||0)).forEach(([id,d])=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${escapeHtml(id)}</td>
-          <td>${escapeHtml(d.title)}</td>
-          <td>${escapeHtml(d.type)}</td>
-          <td>${escapeHtml(d.related)}</td>
-          <td>${new Date(d.timestamp||0).toLocaleString()}</td>
-          <td>
-            <button class="btn small" data-id="${id}" data-action="delete" data-lang="delete">حذف</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-      applyTranslations();
+</main>
+
+<!-- نافذة إضافة / تعديل وثيقة -->
+<div id="documentModal" class="modal hidden">
+  <div class="modal-content">
+    <h2 id="modalTitle">إضافة وثيقة</h2>
+
+    <label>العنوان</label>
+    <input id="d_title" type="text">
+
+    <label>النوع</label>
+    <select id="d_type">
+      <option value="vehicle">وثيقة مركبة</option>
+      <option value="driver">وثيقة سائق</option>
+      <option value="general">وثيقة عامة</option>
+    </select>
+
+    <label>الرابط</label>
+    <input id="d_url" type="text">
+
+    <div class="modal-actions">
+      <button class="btn primary" onclick="saveDocument()">حفظ</button>
+      <button class="btn" onclick="closeDocumentForm()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<script src="firebase.js"></script>
+<script src="session.js"></script>
+<script src="permissions.js"></script>
+
+<script>
+  protectPage("manage_documents");
+
+  let fullData = [];
+  let filteredData = [];
+  let pageSize = 8;
+  let currentPage = 1;
+  let editId = null;
+
+  fetch("sidebar.html").then(r => r.text()).then(html => sidebar.innerHTML = html);
+  fetch("topbar.html").then(r => r.text()).then(html => topbar.innerHTML = html);
+
+  readData("documents", data => {
+    if (!data) return;
+    fullData = Object.entries(data).map(([id, d]) => ({ id, ...d }));
+    filteredData = fullData;
+    renderTable();
+  });
+
+  function generateRow(item) {
+    return `
+      <tr>
+        <td>${item.title}</td>
+        <td><span class="badge badge-doc-${item.type}">${item.type}</span></td>
+        <td><a href="${item.url}" target="_blank">فتح</a></td>
+        <td>
+          <button class="btn small" onclick="editDocument('${item.id}', '${item.title}', '${item.type}', '${item.url}')">تعديل</button>
+          <button class="btn small danger" onclick="deleteDocument('${item.id}')">حذف</button>
+        </td>
+      </tr>
+    `;
+  }
+
+  function renderTable() {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    const pageItems = filteredData.slice(start, end);
+    tableBody.innerHTML = pageItems.map(generateRow).join("");
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const pages = Math.ceil(filteredData.length / pageSize);
+    pagination.innerHTML = "";
+    for (let i = 1; i <= pages; i++) {
+      const btn = document.createElement("button");
+      btn.textContent = i;
+      if (i === currentPage) btn.classList.add("active");
+      btn.onclick = () => { currentPage = i; renderTable(); };
+      pagination.appendChild(btn);
+    }
+  }
+
+  function applySearch() {
+    const q = searchInput.value.toLowerCase();
+    filteredData = fullData.filter(item =>
+      JSON.stringify(item).toLowerCase().includes(q)
+    );
+    currentPage = 1;
+    renderTable();
+  }
+
+  function openDocumentForm() {
+    editId = null;
+    modalTitle.textContent = "إضافة وثيقة";
+    d_title.value = "";
+    d_type.value = "general";
+    d_url.value = "";
+    documentModal.classList.remove("hidden");
+  }
+
+  function closeDocumentForm() {
+    documentModal.classList.add("hidden");
+  }
+
+  async function saveDocument() {
+    const data = {
+      title: d_title.value.trim(),
+      type: d_type.value,
+      url: d_url.value.trim()
+    };
+
+    if (!data.title || !data.url) {
+      alert("يرجى إدخال البيانات");
+      return;
     }
 
-    document.querySelector('#docsTable tbody').addEventListener('click', async (e)=>{
-      const btn = e.target.closest('button');
-      if(!btn) return;
-      const id = btn.dataset.id;
-      const action = btn.dataset.action;
-      if(action==='delete'){
-        if(!confirm('تأكيد الحذف؟')) return;
-        await deleteData(`documents/${id}`);
-        loadDocs();
-      }
-    });
+    if (editId) {
+      await updateData("documents/" + editId, data);
+    } else {
+      await pushData("documents", data);
+    }
 
-    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+    closeDocumentForm();
+  }
 
-    applyTranslations();
-    loadDocs();
-  </script>
+  function editDocument(id, title, type, url) {
+    editId = id;
+    modalTitle.textContent = "تعديل وثيقة";
+    d_title.value = title;
+    d_type.value = type;
+    d_url.value = url;
+    documentModal.classList.remove("hidden");
+  }
+
+  async function deleteDocument(id) {
+    if (!confirm("هل أنت متأكد؟")) return;
+    await deleteData("documents/" + id);
+  }
+</script>
+
 </body>
 </html>
