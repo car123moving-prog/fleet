@@ -4,12 +4,13 @@
 // ⚠️ ⚠️ ⚠️
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBZ4hN9t9cLcD3xHcZz4V5QbW6Y7X8J9K0",
-  authDomain: "car-management-system-12345.firebaseapp.com",
-  projectId: "car-management-system-12345",
-  storageBucket: "car-management-system-12345.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef1234567890abcdef12"
+  apiKey: "AIzaSyDkJ85bI9-6Q_N97dqhBhpWgytqKoM6VH0",
+  authDomain: "fleet-123.firebaseapp.com",
+  databaseURL: "https://fleet-123-default-rtdb.firebaseio.com",
+  projectId: "fleet-123",
+  storageBucket: "fleet-123.firebasestorage.app",
+  messagingSenderId: "266130114678",
+  appId: "1:266130114678:web:56e89b5922749a00c4f757"
 };
 
 // Initialize Firebase
