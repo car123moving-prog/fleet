@@ -1,85 +1,126 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>المستندات</title>
-
-    <link rel="stylesheet" href="assets/css/style.css">
-
-    <script type="module" src="assets/js/firebase.js"></script>
-    <script src="assets/js/session.js"></script>
-    <script src="assets/js/roles.js"></script>
-    <script src="assets/js/lang.js"></script>
-    <script src="assets/js/ui.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title data-lang="documents_page">الوثائق</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+<body>
+  <div id="sidebar"></div>
+  <div id="topbar"></div>
 
-<body data-page="documents">
+  <main class="container">
+    <header class="page-header">
+      <h1 data-lang="documents_page">الوثائق</h1>
+      <div>
+        <button id="addDocBtn" class="btn primary" data-lang="add_document">إضافة وثيقة</button>
+      </div>
+    </header>
 
-    <!-- Sidebar -->
-    <div id="sidebar"></div>
+    <section>
+      <table class="table" id="docsTable">
+        <thead>
+          <tr>
+            <th data-lang="col_id">ID</th>
+            <th data-lang="col_title">العنوان</th>
+            <th data-lang="col_type">النوع</th>
+            <th data-lang="col_related">متعلق بـ</th>
+            <th data-lang="col_time">الوقت</th>
+            <th data-lang="col_actions">إجراءات</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
 
-    <!-- Main -->
-    <div class="main">
-
-        <!-- Topbar -->
-        <div id="topbar"></div>
-
-        <div class="content">
-
-            <h1 class="page-header">المستندات</h1>
-
-            <!-- Table -->
-            <div id="documents-list" class="table"></div>
-
-        </div>
-
-        <!-- Developer Footer -->
-        <div class="footer">
-            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
-        </div>
-
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 id="modalTitle" data-lang="add_document">إضافة وثيقة</h3>
+      <div class="form-group">
+        <label data-lang="doc_title">العنوان</label>
+        <input id="docTitle" />
+      </div>
+      <div class="form-group">
+        <label data-lang="doc_type">النوع</label>
+        <input id="docType" />
+      </div>
+      <div class="form-group">
+        <label data-lang="doc_related">متعلق بـ (vehicle/driver)</label>
+        <input id="docRelated" />
+      </div>
+      <div class="form-actions">
+        <button id="saveDoc" class="btn primary" data-lang="save">حفظ</button>
+        <button id="cancelModal" class="btn" data-lang="cancel">إلغاء</button>
+      </div>
     </div>
+  </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+  <script src="firebase.js"></script>
+  <script src="session.js"></script>
+  <script src="ui.js"></script>
+  <script src="lang.js"></script>
+  <script>
+    ensureAuthRedirect();
 
-    Session.check();
-    Roles.enforcePage();
+    const modal = document.getElementById('modal');
+    document.getElementById('addDocBtn').addEventListener('click', ()=> {
+      modal.classList.remove('hidden');
+      document.getElementById('docTitle').value = '';
+      document.getElementById('docType').value = '';
+      document.getElementById('docRelated').value = '';
+    });
+    document.getElementById('cancelModal').addEventListener('click', ()=> modal.classList.add('hidden'));
 
-    const list = document.getElementById("documents-list");
-
-    DB.documents.watch(data => {
-        list.innerHTML = "";
-
-        if (!data) {
-            list.innerHTML = "<div class='empty'>لا توجد مستندات</div>";
-            return;
-        }
-
-        const entries = Object.entries(data)
-            .sort((a,b)=>b[1].expiry - a[1].expiry);
-
-        entries.forEach(([id, doc]) => {
-            const row = document.createElement("div");
-            row.className = "table-row";
-
-            const expiry = doc.expiry ? new Date(doc.expiry).toLocaleDateString() : "-";
-
-            row.innerHTML = `
-                <div class="cell">${doc.name || "-"}</div>
-                <div class="cell">${doc.vehicle || "-"}</div>
-                <div class="cell">${doc.type || "-"}</div>
-                <div class="cell">${expiry}</div>
-                <div class="cell">${doc.status || "-"}</div>
-            `;
-
-            list.appendChild(row);
-        });
+    document.getElementById('saveDoc').addEventListener('click', async ()=>{
+      const title = document.getElementById('docTitle').value.trim();
+      const type = document.getElementById('docType').value.trim();
+      const related = document.getElementById('docRelated').value.trim();
+      if(!title){ alert('Enter title'); return; }
+      const obj = { title, type, related, timestamp: Date.now() };
+      await pushData('documents', obj);
+      modal.classList.add('hidden');
+      loadDocs();
     });
 
-});
-</script>
+    async function loadDocs(){
+      const docs = await readOnce('documents') || {};
+      const tbody = document.querySelector('#docsTable tbody');
+      tbody.innerHTML = '';
+      Object.entries(docs).sort((a,b)=> (b[1].timestamp||0)-(a[1].timestamp||0)).forEach(([id,d])=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(id)}</td>
+          <td>${escapeHtml(d.title)}</td>
+          <td>${escapeHtml(d.type)}</td>
+          <td>${escapeHtml(d.related)}</td>
+          <td>${new Date(d.timestamp||0).toLocaleString()}</td>
+          <td>
+            <button class="btn small" data-id="${id}" data-action="delete" data-lang="delete">حذف</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      applyTranslations();
+    }
 
+    document.querySelector('#docsTable tbody').addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      if(action==='delete'){
+        if(!confirm('تأكيد الحذف؟')) return;
+        await deleteData(`documents/${id}`);
+        loadDocs();
+      }
+    });
+
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+
+    applyTranslations();
+    loadDocs();
+  </script>
 </body>
 </html>
