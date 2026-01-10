@@ -1,6 +1,7 @@
-// session.js — النسخة النهائية
+// session.js — النسخة النهائية Firebase v8
 
 firebaseAuthOnChange(user => {
+  // إذا لم يكن هناك مستخدم → ارجع لصفحة الدخول
   if (!user) {
     if (!location.pathname.endsWith("login.html")) {
       location.href = "login.html";
