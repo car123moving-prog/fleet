@@ -1,82 +1,132 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>المركبات</title>
-
-    <link rel="stylesheet" href="assets/css/style.css">
-
-    <script type="module" src="assets/js/firebase.js"></script>
-    <script src="assets/js/session.js"></script>
-    <script src="assets/js/roles.js"></script>
-    <script src="assets/js/lang.js"></script>
-    <script src="assets/js/ui.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title data-lang="vehicles_page">المركبات</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+<body>
+  <div id="sidebar"></div>
+  <div id="topbar"></div>
 
-<body data-page="vehicles">
+  <main class="container">
+    <header class="page-header">
+      <h1 data-lang="vehicles_page">المركبات</h1>
+      <div>
+        <button id="addVehicleBtn" class="btn primary" data-lang="add_vehicle">إضافة مركبة</button>
+      </div>
+    </header>
 
-    <!-- Sidebar -->
-    <div id="sidebar"></div>
+    <section>
+      <table class="table" id="vehiclesTable">
+        <thead>
+          <tr>
+            <th data-lang="col_id">ID</th>
+            <th data-lang="col_name">الاسم</th>
+            <th data-lang="col_plate">اللوحة</th>
+            <th data-lang="col_status">الحالة</th>
+            <th data-lang="col_actions">إجراءات</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
 
-    <!-- Main -->
-    <div class="main">
-
-        <!-- Topbar -->
-        <div id="topbar"></div>
-
-        <div class="content">
-
-            <h1 class="page-header">المركبات</h1>
-
-            <!-- Table -->
-            <div id="vehicles-list" class="table"></div>
-
-        </div>
-
-        <!-- Developer Footer -->
-        <div class="footer">
-            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
-        </div>
-
+  <!-- Modal (simple) -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 id="modalTitle" data-lang="add_vehicle">إضافة مركبة</h3>
+      <div class="form-group">
+        <label data-lang="vehicle_name">اسم المركبة</label>
+        <input id="vehicleName" />
+      </div>
+      <div class="form-group">
+        <label data-lang="vehicle_plate">رقم اللوحة</label>
+        <input id="vehiclePlate" />
+      </div>
+      <div class="form-actions">
+        <button id="saveVehicle" class="btn primary" data-lang="save">حفظ</button>
+        <button id="cancelModal" class="btn" data-lang="cancel">إلغاء</button>
+      </div>
     </div>
+  </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+  <script src="firebase.js"></script>
+  <script src="session.js"></script>
+  <script src="ui.js"></script>
+  <script src="lang.js"></script>
+  <script>
+    ensureAuthRedirect();
 
-    Session.check();
-    Roles.enforcePage();
+    const modal = document.getElementById('modal');
+    document.getElementById('addVehicleBtn').addEventListener('click', ()=> {
+      modal.classList.remove('hidden');
+      document.getElementById('vehicleName').value = '';
+      document.getElementById('vehiclePlate').value = '';
+    });
+    document.getElementById('cancelModal').addEventListener('click', ()=> modal.classList.add('hidden'));
 
-    const list = document.getElementById("vehicles-list");
-
-    DB.vehicles.watch(data => {
-        list.innerHTML = "";
-
-        if (!data) {
-            list.innerHTML = "<div class='empty'>لا توجد مركبات</div>";
-            return;
-        }
-
-        const entries = Object.entries(data);
-
-        entries.forEach(([id, v]) => {
-            const row = document.createElement("div");
-            row.className = "table-row";
-
-            row.innerHTML = `
-                <div class="cell">${v.plate || "-"}</div>
-                <div class="cell">${v.type || "-"}</div>
-                <div class="cell">${v.model || "-"}</div>
-                <div class="cell">${v.year || "-"}</div>
-                <div class="cell">${v.status || "-"}</div>
-            `;
-
-            list.appendChild(row);
-        });
+    document.getElementById('saveVehicle').addEventListener('click', async () => {
+      const name = document.getElementById('vehicleName').value.trim();
+      const plate = document.getElementById('vehiclePlate').value.trim();
+      if(!name){ alert('Enter name'); return; }
+      const obj = { name, plate, status: 'active', timestamp: Date.now() };
+      await pushData('vehicles', obj);
+      modal.classList.add('hidden');
+      loadVehicles();
     });
 
-});
-</script>
+    async function loadVehicles(){
+      const vehicles = await readOnce('vehicles') || {};
+      const tbody = document.querySelector('#vehiclesTable tbody');
+      tbody.innerHTML = '';
+      Object.entries(vehicles).forEach(([id, v])=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(id)}</td>
+          <td>${escapeHtml(v.name)}</td>
+          <td>${escapeHtml(v.plate)}</td>
+          <td>${escapeHtml(v.status||'')}</td>
+          <td>
+            <button class="btn small" data-id="${id}" data-action="edit" data-lang="edit">تعديل</button>
+            <button class="btn small danger" data-id="${id}" data-action="delete" data-lang="delete">حذف</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      applyTranslations();
+    }
 
+    document.querySelector('#vehiclesTable tbody').addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      if(action==='delete'){
+        if(!confirm('تأكيد الحذف؟')) return;
+        await deleteData(`vehicles/${id}`);
+        loadVehicles();
+      } else if(action==='edit'){
+        const v = (await readOnce(`vehicles/${id}`)) || {};
+        document.getElementById('vehicleName').value = v.name || '';
+        document.getElementById('vehiclePlate').value = v.plate || '';
+        modal.classList.remove('hidden');
+        document.getElementById('saveVehicle').onclick = async ()=>{
+          const name = document.getElementById('vehicleName').value.trim();
+          const plate = document.getElementById('vehiclePlate').value.trim();
+          await updateData(`vehicles/${id}`, { name, plate, updatedAt: Date.now() });
+          modal.classList.add('hidden');
+          loadVehicles();
+        };
+      }
+    });
+
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+
+    applyTranslations();
+    loadVehicles();
+  </script>
 </body>
 </html>
