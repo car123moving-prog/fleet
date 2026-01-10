@@ -34,18 +34,16 @@
     </div>
   </div>
 
-  <!-- 🔥 مكتبات Firebase — يجب أن تكون قبل firebase.js -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+  <!-- مكتبات Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
   <!-- ملفات النظام -->
   <script src="firebase.js"></script>
   <script src="session.js"></script>
-  <script src="lang.js"></script>
 
   <script>
-    // زر تسجيل الدخول
     document.getElementById('loginBtn').addEventListener('click', async () => {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
@@ -59,7 +57,6 @@
       }
     });
 
-    // زر الدخول كضيف
     document.getElementById('guestBtn').addEventListener('click', async () => {
       const msg = document.getElementById('authMessage');
       msg.textContent = "";
