@@ -1,20 +1,34 @@
-<div class="topbar">
-  <div class="left">
-    <button id="toggleSidebar" class="btn icon">☰</button>
-    <h2 id="pageTitle" data-lang="page_title">Dashboard</h2>
-  </div>
-  <div class="right">
-    <div class="user-info">
-      <span id="userName">—</span>
-      <span id="userRole">—</span>
-      <button id="logoutBtn" class="btn" data-lang="logout">خروج</button>
-    </div>
-  </div>
+<div class="topbar-left">
+  <h2 id="systemTitle">AL MASAOOD SYSTEM</h2>
 </div>
 
+<div class="topbar-right">
+  <button class="btn small" onclick="toggleDarkMode()">🌓</button>
+  <button class="btn small danger" onclick="logout()">خروج</button>
+</div>
+
+<style>
+  #topbar h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+</style>
+
 <script>
-  // topbar local handlers
-  document.getElementById('logoutBtn')?.addEventListener('click', async ()=>{
-    await logout();
+  readData("settings", data => {
+    if (data && data.systemName) {
+      document.getElementById("systemTitle").textContent = data.systemName;
+    }
   });
+
+  function toggleDarkMode() {
+    const isDark = document.body.classList.toggle("dark");
+    localStorage.setItem("darkMode", isDark ? "yes" : "no");
+  }
 </script>
