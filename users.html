@@ -3,142 +3,196 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title data-lang="users_page">المستخدمون</title>
+  <title>إدارة المستخدمين</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
+
   <div id="sidebar"></div>
   <div id="topbar"></div>
 
-  <main class="container">
-    <header class="page-header">
-      <h1 data-lang="users_page">المستخدمون</h1>
-      <div>
-        <button id="addUserBtn" class="btn primary" data-lang="add_user">إضافة مستخدم</button>
-      </div>
-    </header>
+  <main class="page-content">
 
-    <section>
-      <table class="table" id="usersTable">
+    <h1>إدارة المستخدمين</h1>
+
+    <div class="page-header">
+      <button class="btn primary" onclick="openUserForm()">+ إضافة مستخدم</button>
+    </div>
+
+    <div class="table-tools">
+      <input id="searchInput" type="text" placeholder="بحث..." oninput="applySearch()" />
+    </div>
+
+    <div class="table-card">
+      <table class="table">
         <thead>
           <tr>
-            <th data-lang="col_id">ID</th>
-            <th data-lang="col_name">الاسم</th>
-            <th data-lang="col_email">البريد</th>
-            <th data-lang="col_role">الدور</th>
-            <th data-lang="col_actions">إجراءات</th>
+            <th>البريد الإلكتروني</th>
+            <th>الدور</th>
+            <th>إجراءات</th>
           </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="tableBody"></tbody>
       </table>
-    </section>
+    </div>
+
+    <div id="pagination" class="pagination"></div>
+
   </main>
 
-  <div id="modal" class="modal hidden">
+  <!-- نافذة إضافة / تعديل مستخدم -->
+  <div id="userModal" class="modal hidden">
     <div class="modal-content">
-      <h3 id="modalTitle" data-lang="add_user">إضافة مستخدم</h3>
-      <div class="form-group">
-        <label data-lang="user_name">الاسم</label>
-        <input id="userName" />
-      </div>
-      <div class="form-group">
-        <label data-lang="user_email">البريد</label>
-        <input id="userEmail" type="email" />
-      </div>
-      <div class="form-group">
-        <label data-lang="user_role">الدور</label>
-        <select id="userRole">
-          <option value="admin">Admin</option>
-          <option value="manager">Manager</option>
-          <option value="user">User</option>
-        </select>
-      </div>
-      <div class="form-actions">
-        <button id="saveUser" class="btn primary" data-lang="save">حفظ</button>
-        <button id="cancelModal" class="btn" data-lang="cancel">إلغاء</button>
+      <h2 id="modalTitle">إضافة مستخدم</h2>
+
+      <label>البريد الإلكتروني</label>
+      <input id="u_email" type="email">
+
+      <label>كلمة المرور</label>
+      <input id="u_password" type="password">
+
+      <label>الدور</label>
+      <select id="u_role">
+        <option value="admin">مدير النظام</option>
+        <option value="manager">مدير</option>
+        <option value="operations">العمليات</option>
+        <option value="maintenance">الصيانة</option>
+        <option value="viewer">عرض فقط</option>
+      </select>
+
+      <div class="modal-actions">
+        <button class="btn primary" onclick="saveUser()">حفظ</button>
+        <button class="btn" onclick="closeUserForm()">إلغاء</button>
       </div>
     </div>
   </div>
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
   <script src="firebase.js"></script>
   <script src="session.js"></script>
-  <script src="ui.js"></script>
-  <script src="lang.js"></script>
+  <script src="permissions.js"></script>
+
   <script>
-    ensureAuthRedirect();
+    protectPage("manage_users");
 
-    const modal = document.getElementById('modal');
-    document.getElementById('addUserBtn').addEventListener('click', ()=> {
-      modal.classList.remove('hidden');
-      document.getElementById('userName').value = '';
-      document.getElementById('userEmail').value = '';
-      document.getElementById('userRole').value = 'user';
+    let fullData = [];
+    let filteredData = [];
+    let pageSize = 8;
+    let currentPage = 1;
+
+    let editId = null;
+
+    // تحميل الواجهة
+    fetch("sidebar.html").then(r => r.text()).then(html => document.getElementById("sidebar").innerHTML = html);
+    fetch("topbar.html").then(r => r.text()).then(html => document.getElementById("topbar").innerHTML = html);
+
+    // تحميل المستخدمين
+    readData("users", data => {
+      if (!data) return;
+
+      fullData = Object.entries(data).map(([id, u]) => ({ id, ...u }));
+      filteredData = fullData;
+
+      renderTable();
     });
-    document.getElementById('cancelModal').addEventListener('click', ()=> modal.classList.add('hidden'));
 
-    document.getElementById('saveUser').addEventListener('click', async ()=>{
-      const name = document.getElementById('userName').value.trim();
-      const email = document.getElementById('userEmail').value.trim();
-      const role = document.getElementById('userRole').value;
-      if(!email || !name){ alert('Fill required'); return; }
-      // Create user record in users node (authentication should be handled separately)
-      const obj = { name, email, role, timestamp: Date.now() };
-      await pushData('users', obj);
-      modal.classList.add('hidden');
-      loadUsers();
-    });
-
-    async function loadUsers(){
-      const users = await readOnce('users') || {};
-      const tbody = document.querySelector('#usersTable tbody');
-      tbody.innerHTML = '';
-      Object.entries(users).forEach(([id,u])=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${escapeHtml(id)}</td>
-          <td>${escapeHtml(u.name)}</td>
-          <td>${escapeHtml(u.email)}</td>
-          <td>${escapeHtml(u.role)}</td>
+    function generateRow(item) {
+      return `
+        <tr>
+          <td>${item.email}</td>
+          <td><span class="badge badge-${item.role}">${item.role}</span></td>
           <td>
-            <button class="btn small" data-id="${id}" data-action="edit" data-lang="edit">تعديل</button>
-            <button class="btn small danger" data-id="${id}" data-action="delete" data-lang="delete">حذف</button>
+            <button class="btn small" onclick="editUser('${item.id}', '${item.email}', '${item.role}')">تعديل</button>
+            <button class="btn small danger" onclick="deleteUser('${item.id}')">حذف</button>
           </td>
-        `;
-        tbody.appendChild(tr);
-      });
-      applyTranslations();
+        </tr>
+      `;
     }
 
-    document.querySelector('#usersTable tbody').addEventListener('click', async (e)=>{
-      const btn = e.target.closest('button');
-      if(!btn) return;
-      const id = btn.dataset.id;
-      const action = btn.dataset.action;
-      if(action==='delete'){
-        if(!confirm('تأكيد الحذف؟')) return;
-        await deleteData(`users/${id}`);
-        loadUsers();
-      } else if(action==='edit'){
-        const u = (await readOnce(`users/${id}`)) || {};
-        document.getElementById('userName').value = u.name || '';
-        document.getElementById('userEmail').value = u.email || '';
-        document.getElementById('userRole').value = u.role || 'user';
-        modal.classList.remove('hidden');
-        document.getElementById('saveUser').onclick = async ()=>{
-          const name = document.getElementById('userName').value.trim();
-          const email = document.getElementById('userEmail').value.trim();
-          const role = document.getElementById('userRole').value;
-          await updateData(`users/${id}`, { name, email, role, updatedAt: Date.now() });
-          modal.classList.add('hidden');
-          loadUsers();
-        };
+    function renderTable() {
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+      const pageItems = filteredData.slice(start, end);
+
+      document.getElementById("tableBody").innerHTML = pageItems.map(generateRow).join("");
+      renderPagination();
+    }
+
+    function renderPagination() {
+      const pages = Math.ceil(filteredData.length / pageSize);
+      const container = document.getElementById("pagination");
+      container.innerHTML = "";
+
+      for (let i = 1; i <= pages; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        if (i === currentPage) btn.classList.add("active");
+        btn.onclick = () => { currentPage = i; renderTable(); };
+        container.appendChild(btn);
       }
-    });
+    }
 
-    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+    function applySearch() {
+      const q = document.getElementById("searchInput").value.toLowerCase();
+      filteredData = fullData.filter(item =>
+        JSON.stringify(item).toLowerCase().includes(q)
+      );
+      currentPage = 1;
+      renderTable();
+    }
 
-    applyTranslations();
-    loadUsers();
+    function openUserForm() {
+      editId = null;
+      document.getElementById("modalTitle").textContent = "إضافة مستخدم";
+      document.getElementById("u_email").value = "";
+      document.getElementById("u_password").value = "";
+      document.getElementById("u_role").value = "viewer";
+      document.getElementById("userModal").classList.remove("hidden");
+    }
+
+    function closeUserForm() {
+      document.getElementById("userModal").classList.add("hidden");
+    }
+
+    async function saveUser() {
+      const email = document.getElementById("u_email").value.trim();
+      const password = document.getElementById("u_password").value.trim();
+      const role = document.getElementById("u_role").value;
+
+      if (!email || (!editId && !password)) {
+        alert("الرجاء إدخال البيانات");
+        return;
+      }
+
+      if (editId) {
+        await updateData("users/" + editId, { email, role });
+      } else {
+        const userCred = await auth.createUserWithEmailAndPassword(email, password);
+        await updateData("users/" + userCred.user.uid, { email, role });
+      }
+
+      closeUserForm();
+    }
+
+    async function editUser(id, email, role) {
+      editId = id;
+      document.getElementById("modalTitle").textContent = "تعديل مستخدم";
+      document.getElementById("u_email").value = email;
+      document.getElementById("u_password").value = "";
+      document.getElementById("u_role").value = role;
+      document.getElementById("userModal").classList.remove("hidden");
+    }
+
+    async function deleteUser(id) {
+      if (!confirm("هل أنت متأكد من الحذف؟")) return;
+      await deleteData("users/" + id);
+    }
   </script>
+
 </body>
 </html>
