@@ -1,0 +1,20 @@
+<div class="topbar">
+  <div class="left">
+    <button id="toggleSidebar" class="btn icon">☰</button>
+    <h2 id="pageTitle" data-lang="page_title">Dashboard</h2>
+  </div>
+  <div class="right">
+    <div class="user-info">
+      <span id="userName">—</span>
+      <span id="userRole">—</span>
+      <button id="logoutBtn" class="btn" data-lang="logout">خروج</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // topbar local handlers
+  document.getElementById('logoutBtn')?.addEventListener('click', async ()=>{
+    await logout();
+  });
+</script>
