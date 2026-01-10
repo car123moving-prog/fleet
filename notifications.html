@@ -1,94 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>الإشعارات</title>
-
-    <link rel="stylesheet" href="assets/css/style.css">
-
-    <script type="module" src="assets/js/firebase.js"></script>
-    <script src="assets/js/session.js"></script>
-    <script src="assets/js/roles.js"></script>
-    <script src="assets/js/lang.js"></script>
-    <script src="assets/js/ui.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title data-lang="notifications_page">الإشعارات</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+<body>
+  <div id="sidebar"></div>
+  <div id="topbar"></div>
 
-<body data-page="notifications">
+  <main class="container">
+    <header class="page-header">
+      <h1 data-lang="notifications_page">الإشعارات</h1>
+    </header>
 
-    <!-- Sidebar -->
-    <div id="sidebar"></div>
+    <section>
+      <ul id="notificationsList" class="notifications-list"></ul>
+    </section>
+  </main>
 
-    <!-- Main -->
-    <div class="main">
+  <script src="firebase.js"></script>
+  <script src="session.js"></script>
+  <script src="ui.js"></script>
+  <script src="lang.js"></script>
+  <script>
+    ensureAuthRedirect();
 
-        <!-- Topbar -->
-        <div id="topbar"></div>
+    async function loadNotifications(){
+      const notes = await readOnce('notifications') || {};
+      const ul = document.getElementById('notificationsList');
+      ul.innerHTML = '';
+      Object.entries(notes).sort((a,b)=> (b[1].timestamp||0)-(a[1].timestamp||0)).forEach(([id,n])=>{
+        const li = document.createElement('li');
+        li.className = n.read ? 'read' : 'unread';
+        li.innerHTML = `<div class="note-title">${escapeHtml(n.title)}</div><div class="note-time">${new Date(n.timestamp||0).toLocaleString()}</div>`;
+        ul.appendChild(li);
+      });
+    }
 
-        <div class="content">
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
 
-            <h1 class="page-header">الإشعارات</h1>
-
-            <!-- Table -->
-            <div id="notif-list" class="table"></div>
-
-        </div>
-
-        <!-- Developer Footer -->
-        <div class="footer">
-            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
-        </div>
-
-    </div>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-
-    Session.check();
-    Roles.enforcePage();
-
-    const userId = localStorage.getItem("user_id");
-    const box = document.getElementById("notif-list");
-
-    DB.notify.watch(userId, data => {
-        box.innerHTML = "";
-
-        if (!data) {
-            box.innerHTML = "<div class='empty'>لا توجد إشعارات</div>";
-            return;
-        }
-
-        const entries = Object.entries(data)
-            .sort((a,b)=>b[1].time - a[1].time);
-
-        entries.forEach(([id, n]) => {
-            const row = document.createElement("div");
-            row.className = "table-row";
-
-            const time = new Date(n.time).toLocaleString();
-
-            row.innerHTML = `
-                <div class="cell">${n.title || "-"}</div>
-                <div class="cell">${n.message || "-"}</div>
-                <div class="cell">${time}</div>
-                <div class="cell">
-                    ${n.read 
-                        ? "<span style='color:green'>مقروء</span>" 
-                        : "<button class='btn small' onclick=\"markRead('" + id + "')\">تحديد كمقروء</button>"
-                    }
-                </div>
-            `;
-
-            box.appendChild(row);
-        });
-    });
-});
-
-function markRead(id) {
-    const userId = localStorage.getItem("user_id");
-    DB.notify.markRead(userId, id);
-}
-</script>
-
+    applyTranslations();
+    loadNotifications();
+  </script>
 </body>
 </html>
