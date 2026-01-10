@@ -1,6 +1,25 @@
-// firebase.js — النسخة النهائية Firebase v8
+// Firebase Modular SDK
 
-// بيانات مشروعك
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signOut,
+  updatePassword 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+import { 
+  getDatabase, 
+  ref, 
+  set, 
+  get, 
+  onValue, 
+  remove, 
+  update 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+// Your Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDkJ85bI9-6Q_N97dqhBhpWgytqKoM6VH0",
   authDomain: "fleet-123.firebaseapp.com",
@@ -11,68 +30,21 @@ const firebaseConfig = {
   appId: "1:266130114678:web:56e89b5922749a00c4f757"
 };
 
-// التهيئة
-firebase.initializeApp(firebaseConfig);
+// Initialize Firebase
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getDatabase(app);
 
-const auth = firebase.auth();
-const db = firebase.database();
-
-// تسجيل الدخول
-async function login(email, password) {
-  const res = await auth.signInWithEmailAndPassword(email, password);
-  return res.user;
-}
-
-// تسجيل دخول ضيف
-async function loginAsGuest() {
-  const res = await auth.signInAnonymously();
-  return res.user;
-}
-
-// خروج
-async function logout() {
-  await auth.signOut();
-  window.location.href = "login.html";
-}
-
-// مراقبة المستخدم
-function firebaseAuthOnChange(callback) {
-  auth.onAuthStateChanged(user => callback(user));
-}
-
-// قراءة
-async function readOnce(path) {
-  const snap = await db.ref(path).once("value");
-  return snap.exists() ? snap.val() : null;
-}
-
-// كتابة
-async function pushData(path, object) {
-  const ref = db.ref(path).push();
-  object.createdAt = Date.now();
-  object.createdBy = auth.currentUser ? auth.currentUser.uid : null;
-  await ref.set(object);
-  return ref.key;
-}
-
-// تحديث
-async function updateData(path, object) {
-  object.updatedAt = Date.now();
-  return db.ref(path).update(object);
-}
-
-// حذف
-async function deleteData(path) {
-  return db.ref(path).remove();
-}
-
-// تصدير
-window.login = login;
-window.loginAsGuest = loginAsGuest;
-window.logout = logout;
-window.firebaseAuthOnChange = firebaseAuthOnChange;
-
-window.readOnce = readOnce;
-window.pushData = pushData;
-window.updateData = updateData;
-window.deleteData = deleteData;
+// Export functions
+export {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  updatePassword,
+  ref,
+  set,
+  get,
+  onValue,
+  remove,
+  update
+};
