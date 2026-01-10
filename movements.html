@@ -1,84 +1,156 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>الحركات</title>
-
-    <link rel="stylesheet" href="assets/css/style.css">
-
-    <script type="module" src="assets/js/firebase.js"></script>
-    <script src="assets/js/session.js"></script>
-    <script src="assets/js/roles.js"></script>
-    <script src="assets/js/lang.js"></script>
-    <script src="assets/js/ui.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title data-lang="movements_page">الحركات</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+<body>
+  <div id="sidebar"></div>
+  <div id="topbar"></div>
 
-<body data-page="movements">
+  <main class="container">
+    <header class="page-header">
+      <h1 data-lang="movements_page">الحركات</h1>
+      <div>
+        <button id="addMovementBtn" class="btn primary" data-lang="add_movement">إضافة حركة</button>
+      </div>
+    </header>
 
-    <!-- Sidebar -->
-    <div id="sidebar"></div>
+    <section>
+      <table class="table" id="movementsTable">
+        <thead>
+          <tr>
+            <th data-lang="col_id">ID</th>
+            <th data-lang="col_vehicle">المركبة</th>
+            <th data-lang="col_driver">السائق</th>
+            <th data-lang="col_from">من</th>
+            <th data-lang="col_to">إلى</th>
+            <th data-lang="col_time">الوقت</th>
+            <th data-lang="col_actions">إجراءات</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
 
-    <!-- Main -->
-    <div class="main">
-
-        <!-- Topbar -->
-        <div id="topbar"></div>
-
-        <div class="content">
-
-            <h1 class="page-header">الحركات</h1>
-
-            <!-- Table -->
-            <div id="movements-list" class="table"></div>
-
-        </div>
-
-        <!-- Developer Footer -->
-        <div class="footer">
-            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
-        </div>
-
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 id="modalTitle" data-lang="add_movement">إضافة حركة</h3>
+      <div class="form-group">
+        <label data-lang="select_vehicle">اختر المركبة</label>
+        <select id="movementVehicle"></select>
+      </div>
+      <div class="form-group">
+        <label data-lang="select_driver">اختر السائق</label>
+        <select id="movementDriver"></select>
+      </div>
+      <div class="form-group">
+        <label data-lang="from_label">من</label>
+        <input id="movementFrom" />
+      </div>
+      <div class="form-group">
+        <label data-lang="to_label">إلى</label>
+        <input id="movementTo" />
+      </div>
+      <div class="form-actions">
+        <button id="saveMovement" class="btn primary" data-lang="save">حفظ</button>
+        <button id="cancelModal" class="btn" data-lang="cancel">إلغاء</button>
+      </div>
     </div>
+  </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+  <script src="firebase.js"></script>
+  <script src="session.js"></script>
+  <script src="ui.js"></script>
+  <script src="lang.js"></script>
+  <script>
+    ensureAuthRedirect();
 
-    Session.check();
-    Roles.enforcePage();
+    const modal = document.getElementById('modal');
+    document.getElementById('addMovementBtn').addEventListener('click', async ()=> {
+      await populateSelects();
+      modal.classList.remove('hidden');
+      document.getElementById('movementFrom').value = '';
+      document.getElementById('movementTo').value = '';
+    });
+    document.getElementById('cancelModal').addEventListener('click', ()=> modal.classList.add('hidden'));
 
-    const list = document.getElementById("movements-list");
+    async function populateSelects(){
+      const vehicles = await readOnce('vehicles') || {};
+      const drivers = await readOnce('drivers') || {};
+      const vSel = document.getElementById('movementVehicle');
+      const dSel = document.getElementById('movementDriver');
+      vSel.innerHTML = '';
+      dSel.innerHTML = '';
+      Object.entries(vehicles).forEach(([id,v])=>{
+        const opt = document.createElement('option'); opt.value = id; opt.textContent = v.name || id; vSel.appendChild(opt);
+      });
+      Object.entries(drivers).forEach(([id,d])=>{
+        const opt = document.createElement('option'); opt.value = id; opt.textContent = d.name || id; dSel.appendChild(opt);
+      });
+    }
 
-    DB.movements.watch(data => {
-        list.innerHTML = "";
-
-        if (!data) {
-            list.innerHTML = "<div class='empty'>لا توجد حركات</div>";
-            return;
-        }
-
-        const entries = Object.entries(data)
-            .sort((a,b)=>b[1].time - a[1].time);
-
-        entries.forEach(([id, m]) => {
-            const row = document.createElement("div");
-            row.className = "table-row";
-
-            row.innerHTML = `
-                <div class="cell">${m.vehicle || "-"}</div>
-                <div class="cell">${m.driver || "-"}</div>
-                <div class="cell">${m.type || "-"}</div>
-                <div class="cell">${m.from || "-"}</div>
-                <div class="cell">${m.to || "-"}</div>
-                <div class="cell">${new Date(m.time).toLocaleString()}</div>
-            `;
-
-            list.appendChild(row);
-        });
+    document.getElementById('saveMovement').addEventListener('click', async ()=>{
+      const vehicleId = document.getElementById('movementVehicle').value;
+      const driverId = document.getElementById('movementDriver').value;
+      const from = document.getElementById('movementFrom').value.trim();
+      const to = document.getElementById('movementTo').value.trim();
+      if(!vehicleId || !driverId){ alert('Select vehicle and driver'); return; }
+      const vehicles = await readOnce('vehicles') || {};
+      const drivers = await readOnce('drivers') || {};
+      const obj = {
+        vehicleId,
+        vehicleName: vehicles[vehicleId]?.name || '',
+        driverId,
+        driverName: drivers[driverId]?.name || '',
+        from, to, timestamp: Date.now()
+      };
+      await pushData('movements', obj);
+      modal.classList.add('hidden');
+      loadMovements();
     });
 
-});
-</script>
+    async function loadMovements(){
+      const movements = await readOnce('movements') || {};
+      const tbody = document.querySelector('#movementsTable tbody');
+      tbody.innerHTML = '';
+      Object.entries(movements).sort((a,b)=> (b[1].timestamp||0)-(a[1].timestamp||0)).forEach(([id,m])=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(id)}</td>
+          <td>${escapeHtml(m.vehicleName || m.vehicleId)}</td>
+          <td>${escapeHtml(m.driverName || m.driverId)}</td>
+          <td>${escapeHtml(m.from)}</td>
+          <td>${escapeHtml(m.to)}</td>
+          <td>${new Date(m.timestamp||0).toLocaleString()}</td>
+          <td>
+            <button class="btn small" data-id="${id}" data-action="delete" data-lang="delete">حذف</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      applyTranslations();
+    }
 
+    document.querySelector('#movementsTable tbody').addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      if(action==='delete'){
+        if(!confirm('تأكيد الحذف؟')) return;
+        await deleteData(`movements/${id}`);
+        loadMovements();
+      }
+    });
+
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+
+    applyTranslations();
+    loadMovements();
+  </script>
 </body>
 </html>
