@@ -22,7 +22,7 @@
         نظام إدارة السيارات
       </a>
 
-      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
         <span class="navbar-toggler-icon"></span>
       </button>
 
@@ -125,6 +125,7 @@
 
 </div>
 
+<!-- Firebase + Config -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -136,6 +137,10 @@ document.getElementById("year").textContent = new Date().getFullYear();
 let carsData = [];
 const container = document.getElementById("carsContainer");
 const searchInput = document.getElementById("searchInput");
+const filterInsurance = document.getElementById("filterInsurance");
+const filterLicense = document.getElementById("filterLicense");
+const filterDriver = document.getElementById("filterDriver");
+const filterOwner = document.getElementById("filterOwner");
 
 db.collection("cars").where("archived", "==", false).onSnapshot(snapshot => {
   carsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -186,14 +191,15 @@ function renderCars(list) {
 }
 
 function fillDynamicFilters() {
-  const drivers = [...new Set(carsData.map(c => c.driver))];
-  const owners = [...new Set(carsData.map(c => c.owner))];
+  const drivers = [...new Set(carsData.map(c => c.driver).filter(Boolean))];
+  const owners = [...new Set(carsData.map(c => c.owner).filter(Boolean))];
 
   filterDriver.innerHTML = `<option value="">الكل</option>` + drivers.map(d => `<option>${d}</option>`).join("");
   filterOwner.innerHTML = `<option value="">الكل</option>` + owners.map(o => `<option>${o}</option>`).join("");
 }
 
 function getStatus(date) {
+  if (!date) return "expired";
   const today = new Date();
   const target = new Date(date);
   const diff = Math.ceil((target - today) / 86400000);
@@ -218,13 +224,13 @@ function applyFilters() {
   if (filterOwner.value)
     filtered = filtered.filter(c => c.owner === filterOwner.value);
 
-  const term = searchInput.value.toLowerCase();
+  const term = searchInput.value.toLowerCase().trim();
   if (term)
     filtered = filtered.filter(c =>
-      c.carNumber.toLowerCase().includes(term) ||
-      c.plateCode.toLowerCase().includes(term) ||
-      c.driver.toLowerCase().includes(term) ||
-      c.owner.toLowerCase().includes(term)
+      (c.carNumber || "").toLowerCase().includes(term) ||
+      (c.plateCode || "").toLowerCase().includes(term) ||
+      (c.driver || "").toLowerCase().includes(term) ||
+      (c.owner || "").toLowerCase().includes(term)
     );
 
   renderCars(filtered);
@@ -233,6 +239,9 @@ function applyFilters() {
 [filterInsurance, filterLicense, filterDriver, filterOwner, searchInput]
   .forEach(el => el.addEventListener("input", applyFilters));
 </script>
+
+<!-- Bootstrap JS for navbar & components -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
