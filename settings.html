@@ -1,104 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>الإعدادات</title>
-
-    <link rel="stylesheet" href="assets/css/style.css">
-
-    <script type="module" src="assets/js/firebase.js"></script>
-    <script src="assets/js/session.js"></script>
-    <script src="assets/js/roles.js"></script>
-    <script src="assets/js/lang.js"></script>
-    <script src="assets/js/ui.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title data-lang="settings_page">الإعدادات</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+<body>
+  <div id="sidebar"></div>
+  <div id="topbar"></div>
 
-<body data-page="settings">
+  <main class="container">
+    <header class="page-header">
+      <h1 data-lang="settings_page">الإعدادات</h1>
+    </header>
 
-    <!-- Sidebar -->
-    <div id="sidebar"></div>
+    <section class="settings-grid">
+      <div class="setting-item">
+        <label data-lang="language_label">اللغة</label>
+        <select id="langSelect">
+          <option value="ar">العربية</option>
+          <option value="en">English</option>
+        </select>
+      </div>
 
-    <!-- Main -->
-    <div class="main">
+      <div class="setting-item">
+        <label data-lang="theme_label">الوضع</label>
+        <select id="themeSelect">
+          <option value="light" data-lang="light_mode">فاتح</option>
+          <option value="dark" data-lang="dark_mode">داكن</option>
+        </select>
+      </div>
+    </section>
+  </main>
 
-        <!-- Topbar -->
-        <div id="topbar"></div>
-
-        <div class="content">
-
-            <h1 class="page-header">الإعدادات</h1>
-
-            <div class="settings-section">
-
-                <h2 class="section-title">إعدادات الحساب</h2>
-
-                <div class="settings-item">
-                    <label>الاسم</label>
-                    <input id="set-name" type="text">
-                </div>
-
-                <div class="settings-item">
-                    <label>البريد الإلكتروني</label>
-                    <input id="set-email" type="text">
-                </div>
-
-                <div class="settings-item">
-                    <label>كلمة المرور</label>
-                    <input id="set-pass" type="password">
-                </div>
-
-                <button class="btn primary" onclick="saveSettings()">حفظ التعديلات</button>
-
-            </div>
-
-        </div>
-
-        <!-- Developer Footer -->
-        <div class="footer">
-            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
-        </div>
-
-    </div>
-
-<script>
-let userId = null;
-
-document.addEventListener("DOMContentLoaded", () => {
-
-    Session.check();
-    Roles.enforcePage();
-
-    userId = localStorage.getItem("user_id");
-
-    DB.users.get(userId).then(user => {
-        if (!user) return;
-
-        document.getElementById("set-name").value = user.name || "";
-        document.getElementById("set-email").value = user.email || "";
-        document.getElementById("set-pass").value = user.password || "";
-    });
-});
-
-function saveSettings() {
-    const name = document.getElementById("set-name").value.trim();
-    const email = document.getElementById("set-email").value.trim();
-    const pass = document.getElementById("set-pass").value.trim();
-
-    if (!name || !email || !pass) {
-        toast("الرجاء تعبئة جميع الحقول");
-        return;
-    }
-
-    DB.users.update(userId, {
-        name,
-        email,
-        password: pass
+  <script src="session.js"></script>
+  <script src="ui.js"></script>
+  <script src="lang.js"></script>
+  <script>
+    applyTranslations();
+    const langSelect = document.getElementById('langSelect');
+    langSelect.value = getCurrentLang();
+    langSelect.addEventListener('change', (e)=>{
+      setLang(e.target.value);
+      applyTranslations();
+      location.reload();
     });
 
-    toast("تم حفظ التعديلات بنجاح");
-}
-</script>
-
+    const themeSelect = document.getElementById('themeSelect');
+    themeSelect.addEventListener('change', (e)=>{
+      document.documentElement.setAttribute('data-theme', e.target.value);
+    });
+  </script>
 </body>
 </html>
