@@ -1,7 +1,6 @@
-// ⚠️ ⚠️ ⚠️ 
-// 1. استبدل هذه البيانات ببيانات مشروعك الفعلية من Firebase Console
-// 2. لا تشارك هذا الملف مع أحد
-// ⚠️ ⚠️ ⚠️
+/* ============================================================
+   Firebase Initialization
+   ============================================================ */
 
 const firebaseConfig = {
   apiKey: "AIzaSyDkJ85bI9-6Q_N97dqhBhpWgytqKoM6VH0",
@@ -13,236 +12,164 @@ const firebaseConfig = {
   appId: "1:266130114678:web:56e89b5922749a00c4f757"
 };
 
-// Initialize Firebase
-try {
-  firebase.initializeApp(firebaseConfig);
-  console.log("Firebase initialized successfully");
-} catch (error) {
-  if (!firebase.apps.length) {
-    console.error("Firebase initialization error:", error);
-    alert("خطأ في تهيئة Firebase: " + error.message);
-  }
-}
-
-// Initialize Firestore
+firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Authentication check
+/* ============================================================
+   Page Protection
+   ============================================================ */
+
 firebase.auth().onAuthStateChanged(user => {
-  console.log("Auth state changed:", user ? user.email : "no user");
-  
-  const currentPage = window.location.pathname.split('/').pop();
-  
-  // Allow access to login page without authentication
-  if (currentPage === 'login.html') {
-    if (user) {
-      // Redirect to main page if already logged in
-      window.location.href = 'index.html';
-    }
+  const page = window.location.pathname.split('/').pop();
+  const content = document.getElementById("pageContent");
+
+  if (!user && page !== "login.html") {
+    window.location.href = "login.html";
     return;
   }
-  
-  // Redirect to login if not authenticated
-  if (!user) {
-    console.log("No user authenticated, redirecting to login");
-    window.location.href = 'login.html';
+
+  if (user && page === "login.html") {
+    window.location.href = "index.html";
+    return;
   }
+
+  if (content) content.style.display = "block";
 });
 
-// Utility functions
+/* ============================================================
+   Smart Date Formatter
+   ============================================================ */
+
+function formatSmartDate(dateString) {
+  if (!dateString) return "غير محدد";
+
+  const today = new Date();
+  const target = new Date(dateString);
+
+  const formatted = target.toLocaleDateString("ar-EG", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+
+  const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+
+  if (diff === 0) return `${formatted} — اليوم`;
+  if (diff === 1) return `${formatted} — غدًا`;
+  if (diff > 1 && diff <= 7) return `${formatted} — بعد ${diff} أيام`;
+  if (diff < 0 && diff >= -7) return `${formatted} — منتهي منذ ${Math.abs(diff)} أيام`;
+  if (diff < -7) return `${formatted} — منتهي`;
+
+  return formatted;
+}
+
+/* ============================================================
+   Print Card
+   ============================================================ */
+
 function printCard(button) {
-  const card = button.closest('.card');
-  if (!card) {
-    console.error("Card element not found for printing");
-    return;
-  }
-  
-  // Create print window
-  const printWindow = window.open('', '_blank', 'width=800,height=600');
-  
-  // Prepare content for printing
+  const card = button.closest('.card') || button.closest('.archive-card') || button.closest('.profile-card');
+  if (!card) return;
+
+  const printWindow = window.open('', '_blank', 'width=900,height=700');
+
   const content = `
     <!DOCTYPE html>
-    <html>
+    <html lang="ar" dir="rtl">
     <head>
-      <title>طباعة بطاقة السيارة</title>
+      <meta charset="UTF-8">
+      <title>بطاقة السيارة</title>
+
       <style>
-        body { 
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-          padding: 20px;
+        body {
+          font-family: 'Segoe UI', Tahoma, sans-serif;
+          padding: 30px;
+          background: #f8f9fa;
           direction: rtl;
         }
         .print-container {
-          max-width: 800px;
-          margin: 0 auto;
-          border: 1px solid #ddd;
+          background: white;
           padding: 30px;
-          border-radius: 10px;
-          box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          border-radius: 16px;
+          box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+          max-width: 800px;
+          margin: auto;
         }
         .header {
           text-align: center;
-          margin-bottom: 20px;
-          border-bottom: 2px solid #0d6efd;
+          margin-bottom: 25px;
           padding-bottom: 15px;
+          border-bottom: 3px solid #0d6efd;
         }
         .header img {
-          max-height: 60px;
+          max-height: 80px;
           margin-bottom: 10px;
         }
-        .card-content {
-          background: #f8f9fa;
-          padding: 20px;
-          border-radius: 8px;
-          margin: 15px 0;
+        .header h2 {
+          margin: 0;
+          font-size: 1.8rem;
+          color: #0d6efd;
         }
-        .status-badge {
-          display: inline-block;
-          padding: 5px 10px;
-          border-radius: 20px;
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+        }
+        table td {
+          padding: 10px;
+          border-bottom: 1px solid #e5e5e5;
+          font-size: 1.1rem;
+        }
+        table td.label {
           font-weight: bold;
-          margin: 5px 0;
-        }
-        .footer {
-          text-align: center;
-          margin-top: 30px;
-          color: #6c757d;
-          font-size: 0.9em;
-        }
-        @media print {
-          .no-print { display: none; }
+          color: #0d6efd;
+          width: 35%;
         }
       </style>
     </head>
-    <body onload="window.print(); setTimeout(() => window.close(), 100);">
+
+    <body onload="window.print(); setTimeout(() => window.close(), 200);">
       <div class="print-container">
         <div class="header">
-          <img src="${window.location.origin}/logo.png" alt="شعار النظام">
-          <h2>نظام إدارة السيارة</h2>
-          <p>بطاقة معلومات السيارة - ${new Date().toLocaleDateString('ar-EG')}</p>
+          <img src="logo.png" alt="Logo">
+          <h2>بطاقة بيانات السيارة</h2>
         </div>
-        
-        <div class="card-content">
-          ${card.innerHTML}
-        </div>
-        
-        <div class="footer">
-          <p>Developed by MOHAMED SAAD - نظام إدارة السيارة © ${new Date().getFullYear()}</p>
-          <p class="no-print">ستتم طباعة هذه الصفحة وإغلاق النافذة تلقائيًا</p>
-        </div>
+
+        ${card.innerHTML}
       </div>
     </body>
     </html>
   `;
-  
+
+  printWindow.document.open();
   printWindow.document.write(content);
   printWindow.document.close();
 }
 
-async function archiveCar(carId) {
-  if (!confirm('هل أنت متأكد من نقل هذه السيارة للأرشيف؟\nيمكنك استرجاعها لاحقًا من صفحة الأرشيف')) {
-    return;
-  }
-  
-  try {
-    await db.collection('cars').doc(carId).update({
-      archived: true,
-      archivedAt: new Date()
-    });
-    
-    // Show success message
-    const successAlert = document.createElement('div');
-    successAlert.className = 'alert alert-warning alert-dismissible fade show position-fixed bottom-0 end-0 m-3';
-    successAlert.style.zIndex = '1050';
-    successAlert.innerHTML = `
-      <i class="bi bi-archive-fill me-2"></i>
-      <strong>أرشفة!</strong> تم نقل السيارة للأرشيف بنجاح
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(successAlert);
-    
-    setTimeout(() => {
-      successAlert.remove();
-    }, 3000);
-    
-  } catch (error) {
-    console.error('Archive error:', error);
-    alert('خطأ في الأرشفة: ' + (error.message || 'يرجى المحاولة لاحقًا'));
-  }
+/* ============================================================
+   Archive / Restore / Delete
+   ============================================================ */
+
+function archiveCar(id) {
+  if (!confirm("هل تريد نقل السيارة إلى الأرشيف؟")) return;
+
+  db.collection("cars").doc(id).update({
+    archived: true,
+    archivedAt: new Date().toISOString()
+  });
 }
 
-async function restoreCar(carId) {
-  if (!confirm('هل أنت متأكد من استرجاع هذه السيارة إلى القائمة النشطة؟')) {
-    return;
-  }
-  
-  try {
-    await db.collection('cars').doc(carId).update({
-      archived: false,
-      archivedAt: firebase.firestore.FieldValue.delete()
-    });
-    
-    // Show success message
-    const successAlert = document.createElement('div');
-    successAlert.className = 'alert alert-success alert-dismissible fade show position-fixed bottom-0 end-0 m-3';
-    successAlert.style.zIndex = '1050';
-    successAlert.innerHTML = `
-      <i class="bi bi-arrow-counterclockwise me-2"></i>
-      <strong>استرجاع!</strong> تم استرجاع السيارة بنجاح
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(successAlert);
-    
-    setTimeout(() => {
-      successAlert.remove();
-    }, 3000);
-    
-  } catch (error) {
-    console.error('Restore error:', error);
-    alert('خطأ في الاسترجاع: ' + (error.message || 'يرجى المحاولة لاحقًا'));
-  }
+function restoreCar(id) {
+  if (!confirm("هل تريد استعادة السيارة للنشط؟")) return;
+
+  db.collection("cars").doc(id).update({
+    archived: false,
+    archivedAt: null
+  });
 }
 
-async function deleteCar(carId, isArchived = false) {
-  const message = isArchived ? 
-    'هل أنت متأكد من حذف هذه السيارة نهائيًا من الأرشيف؟\nهذا الإجراء لا يمكن التراجع عنه!' :
-    'هل أنت متأكد من حذف هذه السيارة؟\nسيتم حذف جميع بياناتها نهائيًا!';
-  
-  if (!confirm(message)) {
-    return;
-  }
-  
-  try {
-    await db.collection('cars').doc(carId).delete();
-    
-    // Show success message
-    const successAlert = document.createElement('div');
-    successAlert.className = 'alert alert-danger alert-dismissible fade show position-fixed bottom-0 end-0 m-3';
-    successAlert.style.zIndex = '1050';
-    successAlert.innerHTML = `
-      <i class="bi bi-trash-fill me-2"></i>
-      <strong>حذف!</strong> تم حذف السيارة بنجاح
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(successAlert);
-    
-    setTimeout(() => {
-      successAlert.remove();
-    }, 3000);
-    
-  } catch (error) {
-    console.error('Delete error:', error);
-    alert('خطأ في الحذف: ' + (error.message || 'يرجى المحاولة لاحقًا'));
-  }
+function deleteCar(id) {
+  if (!confirm("هل تريد حذف السيارة نهائيًا؟")) return;
+
+  db.collection("cars").doc(id).delete();
 }
-
-// Global error handling
-window.onerror = function(message, source, lineno, colno, error) {
-  console.error('Global error:', { message, source, lineno, colno, error });
-  return false;
-};
-
-window.addEventListener('unhandledrejection', event => {
-  console.error('Unhandled promise rejection:', event.reason);
-  event.preventDefault();
-});
