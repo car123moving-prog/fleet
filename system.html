@@ -1,99 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>معلومات النظام</title>
-
-    <link rel="stylesheet" href="assets/css/style.css">
-
-    <script type="module" src="assets/js/firebase.js"></script>
-    <script src="assets/js/session.js"></script>
-    <script src="assets/js/roles.js"></script>
-    <script src="assets/js/lang.js"></script>
-    <script src="assets/js/ui.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title data-lang="system_page">النظام</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+<body>
+  <div id="sidebar"></div>
+  <div id="topbar"></div>
 
-<body data-page="system">
+  <main class="container">
+    <header class="page-header">
+      <h1 data-lang="system_page">النظام</h1>
+    </header>
 
-    <!-- Sidebar -->
-    <div id="sidebar"></div>
+    <section>
+      <h2 data-lang="system_overview">نظرة عامة</h2>
+      <pre class="code-block" id="systemInfo"></pre>
+    </section>
+  </main>
 
-    <!-- Main -->
-    <div class="main">
+  <script src="firebase.js"></script>
+  <script src="session.js"></script>
+  <script src="ui.js"></script>
+  <script src="lang.js"></script>
+  <script>
+    ensureAuthRedirect();
 
-        <!-- Topbar -->
-        <div id="topbar"></div>
-
-        <div class="content">
-
-            <h1 class="page-header">معلومات النظام</h1>
-
-            <div class="system-section">
-
-                <h2 class="section-title">حالة الاتصال</h2>
-                <div id="sys-connection" class="sys-box">جاري الفحص...</div>
-
-                <h2 class="section-title">حالة Firebase</h2>
-                <div id="sys-firebase" class="sys-box">جاري الفحص...</div>
-
-                <h2 class="section-title">بيانات الجلسة</h2>
-                <div id="sys-session" class="sys-box">جاري التحميل...</div>
-
-            </div>
-
-        </div>
-
-        <!-- Developer Footer -->
-        <div class="footer">
-            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
-        </div>
-
-    </div>
-
-<script>
-document.addEventListener("DOMContentLoaded", async () => {
-
-    Session.check();
-    Roles.enforcePage();
-
-    // ====== حالة الاتصال ======
-    const connBox = document.getElementById("sys-connection");
-    if (navigator.onLine) {
-        connBox.textContent = "متصل بالإنترنت";
-        connBox.style.color = "green";
-    } else {
-        connBox.textContent = "غير متصل بالإنترنت";
-        connBox.style.color = "red";
+    async function loadSystemInfo(){
+      const users = await readOnce('users') || {};
+      const vehicles = await readOnce('vehicles') || {};
+      const drivers = await readOnce('drivers') || {};
+      const info = {
+        users: Object.keys(users).length,
+        vehicles: Object.keys(vehicles).length,
+        drivers: Object.keys(drivers).length,
+        timestamp: new Date().toISOString()
+      };
+      document.getElementById('systemInfo').textContent = JSON.stringify(info, null, 2);
     }
 
-    // ====== حالة Firebase ======
-    const fbBox = document.getElementById("sys-firebase");
-
-    try {
-        const test = await DB.crud.get("system/test");
-        fbBox.textContent = "متصل بـ Firebase";
-        fbBox.style.color = "green";
-    } catch (e) {
-        fbBox.textContent = "غير قادر على الاتصال بـ Firebase";
-        fbBox.style.color = "red";
-    }
-
-    // ====== بيانات الجلسة ======
-    const sessionBox = document.getElementById("sys-session");
-
-    const userId = localStorage.getItem("user_id");
-    const userName = localStorage.getItem("user_name");
-    const userRole = localStorage.getItem("user_role");
-
-    sessionBox.innerHTML = `
-        <div>معرّف المستخدم: <strong>${userId}</strong></div>
-        <div>الاسم: <strong>${userName}</strong></div>
-        <div>الدور: <strong>${userRole}</strong></div>
-        <div>آخر دخول: <strong>${new Date().toLocaleString()}</strong></div>
-    `;
-});
-</script>
-
+    applyTranslations();
+    loadSystemInfo();
+  </script>
 </body>
 </html>
