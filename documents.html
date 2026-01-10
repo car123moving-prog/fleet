@@ -1,191 +1,131 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>الوثائق</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>إدارة الوثائق</title>
+
+  <style>
+    body { margin: 0; font-family: sans-serif; direction: rtl; background: #f5f5f5; }
+
+    .sidebar {
+      width: 220px; background: #1e1e2f; color: white;
+      height: 100vh; position: fixed; top: 0; right: 0; padding-top: 20px;
+    }
+    .sidebar-menu { list-style: none; padding: 0; }
+    .sidebar-menu li { margin: 10px 0; }
+    .sidebar-menu a {
+      color: white; text-decoration: none; padding: 10px 20px; display: block;
+    }
+    .sidebar-menu a:hover { background: #33334d; }
+
+    .topbar {
+      height: 50px; background: #ffffff; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 15px; margin-right: 220px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .content { margin-right: 220px; padding: 20px; }
+
+    table {
+      width: 100%; border-collapse: collapse; background: white;
+    }
+    th, td {
+      padding: 12px; border-bottom: 1px solid #ddd; text-align: right;
+    }
+    th { background: #f0f0f0; }
+
+    button {
+      padding: 6px 12px; border: none; background: #1e1e2f;
+      color: white; cursor: pointer; border-radius: 4px;
+    }
+    button:hover { background: #33334d; }
+
+    .add-box {
+      background: white; padding: 20px; margin-bottom: 20px;
+      border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    input, select {
+      padding: 8px; width: 200px; margin-left: 10px;
+    }
+  </style>
 </head>
 
 <body>
 
-<div id="sidebar"></div>
-<div id="topbar"></div>
-
-<main class="page-content">
-
-  <h1>إدارة الوثائق</h1>
-
-  <div class="page-header">
-    <button class="btn primary" onclick="openDocumentForm()">+ إضافة وثيقة</button>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <ul class="sidebar-menu">
+      <li><a href="dashboard.html">الداشبورد</a></li>
+      <li><a href="vehicles.html">المركبات</a></li>
+      <li><a href="drivers.html">السائقين</a></li>
+      <li><a href="maintenance.html">الصيانة</a></li>
+      <li><a href="documents.html">الوثائق</a></li>
+      <li><a href="users.html">المستخدمين</a></li>
+      <li><a href="settings.html">الإعدادات</a></li>
+      <li><a href="#" id="logoutBtn">تسجيل الخروج</a></li>
+    </ul>
   </div>
 
-  <div class="table-tools">
-    <input id="searchInput" type="text" placeholder="بحث..." oninput="applySearch()" />
+  <!-- Topbar -->
+  <div class="topbar">
+    <div>إدارة الوثائق</div>
+    <div id="username-display"></div>
   </div>
 
-  <div class="table-card">
-    <table class="table">
+  <!-- Content -->
+  <div class="content">
+
+    <div class="add-box">
+      <h3>إضافة وثيقة جديدة</h3>
+
+      <select id="vehicle">
+        <option value="">اختر المركبة</option>
+      </select>
+
+      <input id="title" type="text" placeholder="عنوان الوثيقة">
+      <input id="url" type="text" placeholder="رابط الوثيقة (PDF أو صورة)">
+      <input id="expiry" type="date">
+
+      <button id="addDocumentBtn">إضافة</button>
+    </div>
+
+    <h3>قائمة الوثائق</h3>
+
+    <table>
       <thead>
         <tr>
+          <th>المركبة</th>
           <th>العنوان</th>
-          <th>النوع</th>
           <th>الرابط</th>
+          <th>تاريخ الانتهاء</th>
           <th>إجراءات</th>
         </tr>
       </thead>
-      <tbody id="tableBody"></tbody>
+      <tbody id="documents-table"></tbody>
     </table>
+
   </div>
 
-  <div id="pagination" class="pagination"></div>
+  <!-- Scripts -->
+  <script type="module">
+    import {
+      auth,
+      db,
+      signOut,
+      ref,
+      set,
+      onValue,
+      remove
+    } from "./firebase.js";
 
-</main>
-
-<!-- نافذة إضافة / تعديل وثيقة -->
-<div id="documentModal" class="modal hidden">
-  <div class="modal-content">
-    <h2 id="modalTitle">إضافة وثيقة</h2>
-
-    <label>العنوان</label>
-    <input id="d_title" type="text">
-
-    <label>النوع</label>
-    <select id="d_type">
-      <option value="vehicle">وثيقة مركبة</option>
-      <option value="driver">وثيقة سائق</option>
-      <option value="general">وثيقة عامة</option>
-    </select>
-
-    <label>الرابط</label>
-    <input id="d_url" type="text">
-
-    <div class="modal-actions">
-      <button class="btn primary" onclick="saveDocument()">حفظ</button>
-      <button class="btn" onclick="closeDocumentForm()">إلغاء</button>
-    </div>
-  </div>
-</div>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-<script src="firebase.js"></script>
-<script src="session.js"></script>
-<script src="permissions.js"></script>
-
-<script>
-  protectPage("manage_documents");
-
-  let fullData = [];
-  let filteredData = [];
-  let pageSize = 8;
-  let currentPage = 1;
-  let editId = null;
-
-  fetch("sidebar.html").then(r => r.text()).then(html => sidebar.innerHTML = html);
-  fetch("topbar.html").then(r => r.text()).then(html => topbar.innerHTML = html);
-
-  readData("documents", data => {
-    if (!data) return;
-    fullData = Object.entries(data).map(([id, d]) => ({ id, ...d }));
-    filteredData = fullData;
-    renderTable();
-  });
-
-  function generateRow(item) {
-    return `
-      <tr>
-        <td>${item.title}</td>
-        <td><span class="badge badge-doc-${item.type}">${item.type}</span></td>
-        <td><a href="${item.url}" target="_blank">فتح</a></td>
-        <td>
-          <button class="btn small" onclick="editDocument('${item.id}', '${item.title}', '${item.type}', '${item.url}')">تعديل</button>
-          <button class="btn small danger" onclick="deleteDocument('${item.id}')">حذف</button>
-        </td>
-      </tr>
-    `;
-  }
-
-  function renderTable() {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    const pageItems = filteredData.slice(start, end);
-    tableBody.innerHTML = pageItems.map(generateRow).join("");
-    renderPagination();
-  }
-
-  function renderPagination() {
-    const pages = Math.ceil(filteredData.length / pageSize);
-    pagination.innerHTML = "";
-    for (let i = 1; i <= pages; i++) {
-      const btn = document.createElement("button");
-      btn.textContent = i;
-      if (i === currentPage) btn.classList.add("active");
-      btn.onclick = () => { currentPage = i; renderTable(); };
-      pagination.appendChild(btn);
-    }
-  }
-
-  function applySearch() {
-    const q = searchInput.value.toLowerCase();
-    filteredData = fullData.filter(item =>
-      JSON.stringify(item).toLowerCase().includes(q)
-    );
-    currentPage = 1;
-    renderTable();
-  }
-
-  function openDocumentForm() {
-    editId = null;
-    modalTitle.textContent = "إضافة وثيقة";
-    d_title.value = "";
-    d_type.value = "general";
-    d_url.value = "";
-    documentModal.classList.remove("hidden");
-  }
-
-  function closeDocumentForm() {
-    documentModal.classList.add("hidden");
-  }
-
-  async function saveDocument() {
-    const data = {
-      title: d_title.value.trim(),
-      type: d_type.value,
-      url: d_url.value.trim()
+    // تسجيل الخروج
+    document.getElementById("logoutBtn").onclick = () => {
+      signOut(auth).then(() => location.href = "login.html");
     };
 
-    if (!data.title || !data.url) {
-      alert("يرجى إدخال البيانات");
-      return;
-    }
+    // تحميل المركبات
+    onValue(ref(db, "vehicles"), snap => {
+      const select = document.getElementById("vehicle");
+      select.innerHTML = `<option value="">اختر المركبة</option>`;
 
-    if (editId) {
-      await updateData("documents/" + editId, data);
-    } else {
-      await pushData("documents", data);
-    }
-
-    closeDocumentForm();
-  }
-
-  function editDocument(id, title, type, url) {
-    editId = id;
-    modalTitle.textContent = "تعديل وثيقة";
-    d_title.value = title;
-    d_type.value = type;
-    d_url.value = url;
-    documentModal.classList.remove("hidden");
-  }
-
-  async function deleteDocument(id) {
-    if (!confirm("هل أنت متأكد؟")) return;
-    await deleteData("documents/" + id);
-  }
-</script>
-
-</body>
-</html>
