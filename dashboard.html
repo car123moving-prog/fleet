@@ -1,86 +1,144 @@
 <!doctype html>
-<html lang="en" dir="rtl">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title data-lang="dashboard_title">لوحة التحكم</title>
+  <title>لوحة التحكم</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
+
   <div id="sidebar"></div>
   <div id="topbar"></div>
 
-  <main class="container">
-    <section class="cards">
-      <div class="card">
-        <h3 data-lang="vehicles_count">المركبات</h3>
-        <p id="vehiclesCount">0</p>
-      </div>
-      <div class="card">
-        <h3 data-lang="drivers_count">السائقون</h3>
-        <p id="driversCount">0</p>
-      </div>
-      <div class="card">
-        <h3 data-lang="movements_count">الحركات</h3>
-        <p id="movementsCount">0</p>
-      </div>
-    </section>
+  <main class="page-content">
 
-    <section class="recent">
-      <h2 data-lang="recent_movements">أحدث الحركات</h2>
-      <table class="table" id="recentTable">
+    <h1>لوحة التحكم</h1>
+
+    <!-- الإحصائيات -->
+    <div class="stats-grid">
+
+      <div class="stat-card">
+        <h3>عدد المركبات</h3>
+        <div class="stat-number" id="statVehicles">0</div>
+      </div>
+
+      <div class="stat-card">
+        <h3>عدد السائقين</h3>
+        <div class="stat-number" id="statDrivers">0</div>
+      </div>
+
+      <div class="stat-card">
+        <h3>الحركات النشطة</h3>
+        <div class="stat-number" id="statActive">0</div>
+      </div>
+
+      <div class="stat-card">
+        <h3>سجلات الصيانة</h3>
+        <div class="stat-number" id="statMaintenance">0</div>
+      </div>
+
+    </div>
+
+    <!-- آخر الحركات -->
+    <div class="table-card">
+      <h2>آخر الحركات</h2>
+      <table class="table">
         <thead>
           <tr>
-            <th data-lang="col_vehicle">المركبة</th>
-            <th data-lang="col_driver">السائق</th>
-            <th data-lang="col_from">من</th>
-            <th data-lang="col_to">إلى</th>
-            <th data-lang="col_time">الوقت</th>
+            <th>المركبة</th>
+            <th>السائق</th>
+            <th>الوجهة</th>
+            <th>الوقت</th>
           </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="recentMovements"></tbody>
       </table>
-    </section>
+    </div>
+
+    <!-- آخر الإشعارات -->
+    <div class="table-card">
+      <h2>آخر الإشعارات</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>العنوان</th>
+            <th>الفئة</th>
+            <th>التاريخ</th>
+          </tr>
+        </thead>
+        <tbody id="recentNotifications"></tbody>
+      </table>
+    </div>
+
   </main>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <script src="firebase.js"></script>
   <script src="session.js"></script>
-  <script src="roles.js"></script>
-  <script src="ui.js"></script>
-  <script src="lang.js"></script>
+  <script src="permissions.js"></script>
+
   <script>
-    ensureAuthRedirect(); // from session.js
+    protectPage("view_dashboard");
 
-    async function loadDashboard() {
-      const vehicles = await readOnce('vehicles') || {};
-      const drivers = await readOnce('drivers') || {};
-      const movements = await readOnce('movements') || {};
+    // تحميل الواجهة
+    fetch("sidebar.html").then(r => r.text()).then(html => document.getElementById("sidebar").innerHTML = html);
+    fetch("topbar.html").then(r => r.text()).then(html => document.getElementById("topbar").innerHTML = html);
 
-      document.getElementById('vehiclesCount').textContent = Object.keys(vehicles).length;
-      document.getElementById('driversCount').textContent = Object.keys(drivers).length;
-      document.getElementById('movementsCount').textContent = Object.keys(movements).length;
+    // إحصائيات
+    readData("vehicles", data => {
+      document.getElementById("statVehicles").textContent = data ? Object.keys(data).length : 0;
+    });
 
-      const recentTbody = document.querySelector('#recentTable tbody');
-      recentTbody.innerHTML = '';
-      const arr = Object.values(movements).sort((a,b)=> (b.timestamp||0)-(a.timestamp||0)).slice(0,10);
-      arr.forEach(m => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${escapeHtml(m.vehicleName || m.vehicleId || '')}</td>
-          <td>${escapeHtml(m.driverName || m.driverId || '')}</td>
-          <td>${escapeHtml(m.from || '')}</td>
-          <td>${escapeHtml(m.to || '')}</td>
-          <td>${new Date(m.timestamp||0).toLocaleString()}</td>
-        `;
-        recentTbody.appendChild(tr);
-      });
-    }
+    readData("drivers", data => {
+      document.getElementById("statDrivers").textContent = data ? Object.keys(data).length : 0;
+    });
 
-    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+    readData("movements", data => {
+      if (!data) return;
 
-    // init
-    applyTranslations();
-    loadDashboard();
+      const list = Object.values(data);
+      const active = list.filter(m => !m.end).length;
+      document.getElementById("statActive").textContent = active;
+
+      const recent = list.slice(-5).reverse();
+      document.getElementById("recentMovements").innerHTML =
+        recent.map(m => `
+          <tr>
+            <td>${m.vehicle}</td>
+            <td>${m.driver}</td>
+            <td>${m.destination}</td>
+            <td>${m.start}</td>
+          </tr>
+        `).join("");
+    });
+
+    readData("maintenance", data => {
+      document.getElementById("statMaintenance").textContent = data ? Object.keys(data).length : 0;
+    });
+
+    readData("notifications", data => {
+      if (!data) return;
+
+      const list = Object.values(data)
+        .sort((a, b) => b.date - a.date)
+        .slice(0, 5);
+
+      document.getElementById("recentNotifications").innerHTML =
+        list.map(n => `
+          <tr>
+            <td>${n.title}</td>
+            <td><span class="badge badge-${n.type}">${n.type}</span></td>
+            <td>${new Date(n.date).toLocaleString("ar-AE")}</td>
+          </tr>
+        `).join("");
+    });
   </script>
+
 </body>
 </html>
