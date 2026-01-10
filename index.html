@@ -3,205 +3,236 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>الرئيسية - نظام إدارة السيارة</title>
+  <title>الرئيسية - نظام إدارة السيارات</title>
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 </head>
-<body class="d-flex flex-column min-vh-100">
-  <!-- شريط التنقل -->
+
+<body class="page-enter bg-light d-flex flex-column min-vh-100">
+
+<div id="pageContent" style="display:none;">
+
+  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
     <div class="container">
-      <a class="navbar-brand d-flex align-items-center" href="index.html">
-        <img src="logo.png" alt="الشعار" style="max-height: 40px; margin-right: 10px;">
-        <span class="fw-bold">نظام إدارة السيارة</span>
+      <a class="navbar-brand fw-bold" href="index.html">
+        <img src="logo.png" style="height:40px" class="me-2">
+        نظام إدارة السيارات
       </a>
-      
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+
+      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav">
         <span class="navbar-toggler-icon"></span>
       </button>
-      
-      <div class="collapse navbar-collapse" id="mainNav">
+
+      <div id="nav" class="collapse navbar-collapse">
         <ul class="navbar-nav ms-auto">
+
           <li class="nav-item">
-            <a href="add.html" class="nav-link btn btn-light text-primary fw-bold px-4 py-2 me-2">
-              <i class="bi bi-plus-circle me-2"></i> إضافة سيارة
+            <a href="dashboard.html" class="nav-link btn btn-outline-light fw-bold px-3 me-2">
+              <i class="bi bi-speedometer2 me-1"></i> لوحة التحكم
             </a>
           </li>
+
           <li class="nav-item">
-            <a href="archive.html" class="nav-link btn btn-outline-light fw-bold px-4 py-2">
-              <i class="bi bi-archive me-2"></i> الأرشيف
+            <a href="add.html" class="nav-link btn btn-outline-light fw-bold px-3 me-2">
+              <i class="bi bi-plus-circle me-1"></i> إضافة سيارة
             </a>
           </li>
-          <li class="nav-item ms-3">
-            <button class="btn btn-danger fw-bold" onclick="firebase.auth().signOut()">
-              <i class="bi bi-box-arrow-right me-2"></i> خروج
+
+          <li class="nav-item">
+            <a href="archive.html" class="nav-link btn btn-outline-light fw-bold px-3 me-2">
+              <i class="bi bi-archive me-1"></i> الأرشيف
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <button onclick="firebase.auth().signOut()" class="btn btn-danger fw-bold px-3">
+              <i class="bi bi-box-arrow-right me-1"></i> خروج
             </button>
           </li>
+
         </ul>
       </div>
     </div>
   </nav>
 
-  <!-- محتوى الصفحة -->
-  <main class="container flex-grow-1 py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="display-5 fw-bold text-primary">السيارات النشطة</h1>
-      <div class="position-relative">
-        <input type="text" id="searchInput" class="form-control form-control-lg" 
-               placeholder="ابحث برقم السيارة أو اللوحة..." style="width: 300px;">
+  <!-- Content -->
+  <main class="container py-4 flex-grow-1">
+
+    <h2 class="fw-bold text-primary mb-4">
+      <i class="bi bi-car-front me-2"></i> السيارات النشطة
+    </h2>
+
+    <!-- Filters -->
+    <div class="filter-card mb-4">
+      <div class="row g-3">
+
+        <div class="col-md-3">
+          <label class="form-label fw-bold">حالة التأمين</label>
+          <select id="filterInsurance" class="form-select">
+            <option value="">الكل</option>
+            <option value="valid">ساري</option>
+            <option value="soon">ينتهي خلال 7 أيام</option>
+            <option value="expired">منتهي</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-bold">حالة الترخيص</label>
+          <select id="filterLicense" class="form-select">
+            <option value="">الكل</option>
+            <option value="valid">ساري</option>
+            <option value="soon">ينتهي خلال 7 أيام</option>
+            <option value="expired">منتهي</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-bold">السائق</label>
+          <select id="filterDriver" class="form-select">
+            <option value="">الكل</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-bold">المالك</label>
+          <select id="filterOwner" class="form-select">
+            <option value="">الكل</option>
+          </select>
+        </div>
+
       </div>
     </div>
-    
-    <div id="carsList" class="row g-4"></div>
-    
-    <div id="noCars" class="text-center py-5 d-none">
-      <i class="bi bi-car-front fs-1 text-muted mb-3 d-block"></i>
-      <h3 class="text-muted">لا توجد سيارات نشطة</h3>
-      <p class="text-muted">اضغط على زر "إضافة سيارة" لإضافة أول سيارة لك</p>
-      <a href="add.html" class="btn btn-primary btn-lg mt-3">
-        <i class="bi bi-plus-circle me-2"></i> إضافة سيارة جديدة
-      </a>
-    </div>
+
+    <!-- Search -->
+    <input id="searchInput" class="form-control mb-4" placeholder="بحث عن سيارة...">
+
+    <!-- Cars List -->
+    <div id="carsContainer" class="row g-4"></div>
+
   </main>
 
-  <!-- التذييل -->
-  <footer class="bg-light py-3 mt-auto border-top">
+  <!-- Footer -->
+  <footer class="bg-light py-3 border-top mt-auto">
     <div class="container text-center">
       <small class="text-muted">
-        Developed by <strong class="text-primary">MOHAMED SAAD</strong> - 
-        <span class="d-block d-md-inline mt-1">نظام إدارة السيارة © ${new Date().getFullYear()}</span>
+        Developed by <strong class="text-primary">MOHAMED SAAD</strong> — <span id="year"></span>
       </small>
     </div>
   </footer>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="config.js"></script>
-  <script>
-    // عرض السيارات النشطة
-    const carsList = document.getElementById('carsList');
-    const noCars = document.getElementById('noCars');
-    const searchInput = document.getElementById('searchInput');
-    
-    function renderCars(cars) {
-      if (cars.length === 0) {
-        noCars.classList.remove('d-none');
-        carsList.innerHTML = '';
-        return;
-      }
-      
-      noCars.classList.add('d-none');
-      carsList.innerHTML = '';
-      
-      cars.forEach(car => {
-        // Calculate days left for insurance
-        const today = new Date();
-        const insuranceDate = new Date(car.insuranceExpiry);
-        const diffTime = insuranceDate - today;
-        const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        // Determine alert class based on days left
-        let alertClass = 'border-start border-4';
-        let statusText = '';
-        let statusColor = '';
-        
-        if (daysLeft < 0) {
-          alertClass += ' border-danger';
-          statusText = 'منتهي';
-          statusColor = 'text-danger fw-bold';
-        } else if (daysLeft <= 7) {
-          alertClass += ' border-warning';
-          statusText = `ينتهي خلال ${daysLeft} أيام`;
-          statusColor = 'text-warning fw-bold';
-        } else {
-          alertClass += ' border-success';
-          statusText = `صالح لـ ${daysLeft} أيام`;
-          statusColor = 'text-success fw-bold';
-        }
-        
-        carsList.innerHTML += `
-          <div class="col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm ${alertClass} rounded-4">
-              <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 fw-bold text-primary">السيارة: ${car.carNumber}</h5>
-                <span class="badge ${statusColor} fs-6">${statusText}</span>
-              </div>
-              <div class="card-body">
-                <div class="mb-3">
-                  <p class="mb-1"><strong>كود اللوحة:</strong> ${car.plateCode || 'غير محدد'}</p>
-                  <p class="mb-1"><strong>المالك:</strong> ${car.owner || 'غير محدد'}</p>
-                  <p class="mb-1"><strong>السائق:</strong> ${car.driver || 'غير محدد'}</p>
-                  <p class="mb-1"><strong>نوع السيارة:</strong> ${car.carType || 'غير محدد'}</p>
-                </div>
-                
-                <div class="bg-light p-3 rounded mb-3">
-                  <div class="d-flex justify-content-between mb-2">
-                    <span>الترخيص:</span>
-                    <strong class="text-primary">${car.licenseExpiry || 'غير محدد'}</strong>
-                  </div>
-                  <div class="d-flex justify-content-between">
-                    <span>التأمين:</span>
-                    <strong class="${statusColor}">${car.insuranceExpiry || 'غير محدد'}</strong>
-                  </div>
-                </div>
-                
-                ${car.notes ? `
-                <div class="alert alert-info mb-3">
-                  <i class="bi bi-chat-left-text me-2"></i>
-                  <strong>ملاحظات:</strong> ${car.notes}
-                </div>
-                ` : ''}
-                
-                <div class="d-grid gap-2">
-                  <button class="btn btn-outline-primary py-2" onclick="printCard(this)">
-                    <i class="bi bi-printer me-2"></i>طباعة البطاقة
-                  </button>
-                  <button class="btn btn-warning py-2" onclick="archiveCar('${car.id}')">
-                    <i class="bi bi-archive me-2"></i>نقل للأرشيف
-                  </button>
-                  <button class="btn btn-danger py-2" onclick="deleteCar('${car.id}')">
-                    <i class="bi bi-trash me-2"></i>حذف نهائي
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-    }
-    
-    // Real-time data listener
-    let carsData = [];
-    
-    db.collection('cars')
-      .where('archived', '==', false)
-      .onSnapshot(snapshot => {
-        carsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        applySearchFilter();
-      });
-    
-    // Search functionality
-    searchInput.addEventListener('input', applySearchFilter);
-    
-    function applySearchFilter() {
-      const searchTerm = searchInput.value.toLowerCase().trim();
-      
-      if (!searchTerm) {
-        renderCars(carsData);
-        return;
-      }
-      
-      const filteredCars = carsData.filter(car => 
-        car.carNumber.toLowerCase().includes(searchTerm) ||
-        car.plateCode.toLowerCase().includes(searchTerm) ||
-        car.owner.toLowerCase().includes(searchTerm) ||
-        car.driver.toLowerCase().includes(searchTerm)
-      );
-      
-      renderCars(filteredCars);
-    }
-  </script>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="config.js"></script>
+
+<script>
+document.getElementById("year").textContent = new Date().getFullYear();
+
+let carsData = [];
+const container = document.getElementById("carsContainer");
+const searchInput = document.getElementById("searchInput");
+
+db.collection("cars").where("archived", "==", false).onSnapshot(snapshot => {
+  carsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  fillDynamicFilters();
+  applyFilters();
+});
+
+function renderCars(list) {
+  container.innerHTML = list.map(car => `
+    <div class="col-md-4">
+      <div class="card p-3">
+
+        <h5 class="fw-bold text-primary">${car.carNumber}</h5>
+        <p class="text-muted mb-1">اللوحة: ${car.plateCode}</p>
+        <p class="text-muted mb-1">السائق: ${car.driver}</p>
+        <p class="text-muted mb-1">المالك: ${car.owner}</p>
+
+        <p class="mb-1"><strong>التأمين:</strong> ${formatSmartDate(car.insuranceExpiry)}</p>
+        <p class="mb-3"><strong>الترخيص:</strong> ${formatSmartDate(car.licenseExpiry)}</p>
+
+        <div class="d-grid gap-2">
+
+          <a href="car.html?id=${car.id}" class="btn btn-secondary text-white">
+            <i class="bi bi-eye me-1"></i> عرض التفاصيل
+          </a>
+
+          <a href="edit.html?id=${car.id}" class="btn btn-info text-white">
+            <i class="bi bi-pencil-square me-1"></i> تعديل
+          </a>
+
+          <button class="btn btn-outline-primary" onclick="printCard(this)">
+            <i class="bi bi-printer me-1"></i> طباعة
+          </button>
+
+          <button class="btn btn-warning" onclick="archiveCar('${car.id}')">
+            <i class="bi bi-archive me-1"></i> أرشفة
+          </button>
+
+          <button class="btn btn-danger" onclick="deleteCar('${car.id}')">
+            <i class="bi bi-trash me-1"></i> حذف
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+  `).join("");
+}
+
+function fillDynamicFilters() {
+  const drivers = [...new Set(carsData.map(c => c.driver))];
+  const owners = [...new Set(carsData.map(c => c.owner))];
+
+  filterDriver.innerHTML = `<option value="">الكل</option>` + drivers.map(d => `<option>${d}</option>`).join("");
+  filterOwner.innerHTML = `<option value="">الكل</option>` + owners.map(o => `<option>${o}</option>`).join("");
+}
+
+function getStatus(date) {
+  const today = new Date();
+  const target = new Date(date);
+  const diff = Math.ceil((target - today) / 86400000);
+
+  if (diff < 0) return "expired";
+  if (diff <= 7) return "soon";
+  return "valid";
+}
+
+function applyFilters() {
+  let filtered = [...carsData];
+
+  if (filterInsurance.value)
+    filtered = filtered.filter(c => getStatus(c.insuranceExpiry) === filterInsurance.value);
+
+  if (filterLicense.value)
+    filtered = filtered.filter(c => getStatus(c.licenseExpiry) === filterLicense.value);
+
+  if (filterDriver.value)
+    filtered = filtered.filter(c => c.driver === filterDriver.value);
+
+  if (filterOwner.value)
+    filtered = filtered.filter(c => c.owner === filterOwner.value);
+
+  const term = searchInput.value.toLowerCase();
+  if (term)
+    filtered = filtered.filter(c =>
+      c.carNumber.toLowerCase().includes(term) ||
+      c.plateCode.toLowerCase().includes(term) ||
+      c.driver.toLowerCase().includes(term) ||
+      c.owner.toLowerCase().includes(term)
+    );
+
+  renderCars(filtered);
+}
+
+[filterInsurance, filterLicense, filterDriver, filterOwner, searchInput]
+  .forEach(el => el.addEventListener("input", applyFilters));
+</script>
+
 </body>
 </html>
