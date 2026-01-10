@@ -1,196 +1,179 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>المركبات</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>إدارة المركبات</title>
+
+  <style>
+    body { margin: 0; font-family: sans-serif; direction: rtl; background: #f5f5f5; }
+
+    .sidebar {
+      width: 220px; background: #1e1e2f; color: white;
+      height: 100vh; position: fixed; top: 0; right: 0; padding-top: 20px;
+    }
+    .sidebar-menu { list-style: none; padding: 0; }
+    .sidebar-menu li { margin: 10px 0; }
+    .sidebar-menu a {
+      color: white; text-decoration: none; padding: 10px 20px; display: block;
+    }
+    .sidebar-menu a:hover { background: #33334d; }
+
+    .topbar {
+      height: 50px; background: #ffffff; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 15px; margin-right: 220px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .content { margin-right: 220px; padding: 20px; }
+
+    table {
+      width: 100%; border-collapse: collapse; background: white;
+    }
+    th, td {
+      padding: 12px; border-bottom: 1px solid #ddd; text-align: right;
+    }
+    th { background: #f0f0f0; }
+
+    button {
+      padding: 6px 12px; border: none; background: #1e1e2f;
+      color: white; cursor: pointer; border-radius: 4px;
+    }
+    button:hover { background: #33334d; }
+
+    .add-box {
+      background: white; padding: 20px; margin-bottom: 20px;
+      border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    input {
+      padding: 8px; width: 200px; margin-left: 10px;
+    }
+  </style>
 </head>
 
 <body>
 
-<div id="sidebar"></div>
-<div id="topbar"></div>
-
-<main class="page-content">
-
-  <h1>إدارة المركبات</h1>
-
-  <div class="page-header">
-    <button class="btn primary" onclick="openVehicleForm()">+ إضافة مركبة</button>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <ul class="sidebar-menu">
+      <li><a href="dashboard.html">الداشبورد</a></li>
+      <li><a href="vehicles.html">المركبات</a></li>
+      <li><a href="drivers.html">السائقين</a></li>
+      <li><a href="maintenance.html">الصيانة</a></li>
+      <li><a href="documents.html">الوثائق</a></li>
+      <li><a href="users.html">المستخدمين</a></li>
+      <li><a href="settings.html">الإعدادات</a></li>
+      <li><a href="#" id="logoutBtn">تسجيل الخروج</a></li>
+    </ul>
   </div>
 
-  <div class="table-tools">
-    <input id="searchInput" type="text" placeholder="بحث..." oninput="applySearch()" />
+  <!-- Topbar -->
+  <div class="topbar">
+    <div>إدارة المركبات</div>
+    <div id="username-display"></div>
   </div>
 
-  <div class="table-card">
-    <table class="table">
+  <!-- Content -->
+  <div class="content">
+
+    <div class="add-box">
+      <h3>إضافة مركبة جديدة</h3>
+
+      <input id="plate" type="text" placeholder="رقم اللوحة">
+      <input id="model" type="text" placeholder="الموديل">
+      <input id="year" type="number" placeholder="السنة">
+
+      <button id="addVehicleBtn">إضافة</button>
+    </div>
+
+    <h3>قائمة المركبات</h3>
+
+    <table>
       <thead>
         <tr>
-          <th>رقم المركبة</th>
-          <th>النوع</th>
+          <th>رقم اللوحة</th>
+          <th>الموديل</th>
           <th>السنة</th>
-          <th>الحالة</th>
           <th>إجراءات</th>
         </tr>
       </thead>
-      <tbody id="tableBody"></tbody>
+      <tbody id="vehicles-table"></tbody>
     </table>
+
   </div>
 
-  <div id="pagination" class="pagination"></div>
+  <!-- Scripts -->
+  <script type="module">
+    import {
+      auth,
+      db,
+      signOut,
+      ref,
+      set,
+      onValue,
+      remove
+    } from "./firebase.js";
 
-</main>
-
-<!-- نافذة إضافة / تعديل مركبة -->
-<div id="vehicleModal" class="modal hidden">
-  <div class="modal-content">
-    <h2 id="modalTitle">إضافة مركبة</h2>
-
-    <label>رقم المركبة</label>
-    <input id="v_number" type="text">
-
-    <label>النوع</label>
-    <input id="v_type" type="text">
-
-    <label>السنة</label>
-    <input id="v_year" type="number">
-
-    <label>الحالة</label>
-    <select id="v_status">
-      <option value="active">نشطة</option>
-      <option value="maintenance">في الصيانة</option>
-      <option value="inactive">غير نشطة</option>
-    </select>
-
-    <div class="modal-actions">
-      <button class="btn primary" onclick="saveVehicle()">حفظ</button>
-      <button class="btn" onclick="closeVehicleForm()">إلغاء</button>
-    </div>
-  </div>
-</div>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-<script src="firebase.js"></script>
-<script src="session.js"></script>
-<script src="permissions.js"></script>
-
-<script>
-  protectPage("manage_vehicles");
-
-  let fullData = [];
-  let filteredData = [];
-  let pageSize = 8;
-  let currentPage = 1;
-  let editId = null;
-
-  fetch("sidebar.html").then(r => r.text()).then(html => sidebar.innerHTML = html);
-  fetch("topbar.html").then(r => r.text()).then(html => topbar.innerHTML = html);
-
-  readData("vehicles", data => {
-    if (!data) return;
-    fullData = Object.entries(data).map(([id, v]) => ({ id, ...v }));
-    filteredData = fullData;
-    renderTable();
-  });
-
-  function generateRow(item) {
-    return `
-      <tr>
-        <td>${item.number}</td>
-        <td>${item.type}</td>
-        <td>${item.year}</td>
-        <td><span class="badge badge-${item.status}">${item.status}</span></td>
-        <td>
-          <button class="btn small" onclick="editVehicle('${item.id}', '${item.number}', '${item.type}', '${item.year}', '${item.status}')">تعديل</button>
-          <button class="btn small danger" onclick="deleteVehicle('${item.id}')">حذف</button>
-        </td>
-      </tr>
-    `;
-  }
-
-  function renderTable() {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    const pageItems = filteredData.slice(start, end);
-    tableBody.innerHTML = pageItems.map(generateRow).join("");
-    renderPagination();
-  }
-
-  function renderPagination() {
-    const pages = Math.ceil(filteredData.length / pageSize);
-    pagination.innerHTML = "";
-    for (let i = 1; i <= pages; i++) {
-      const btn = document.createElement("button");
-      btn.textContent = i;
-      if (i === currentPage) btn.classList.add("active");
-      btn.onclick = () => { currentPage = i; renderTable(); };
-      pagination.appendChild(btn);
-    }
-  }
-
-  function applySearch() {
-    const q = searchInput.value.toLowerCase();
-    filteredData = fullData.filter(item =>
-      JSON.stringify(item).toLowerCase().includes(q)
-    );
-    currentPage = 1;
-    renderTable();
-  }
-
-  function openVehicleForm() {
-    editId = null;
-    modalTitle.textContent = "إضافة مركبة";
-    v_number.value = "";
-    v_type.value = "";
-    v_year.value = "";
-    v_status.value = "active";
-    vehicleModal.classList.remove("hidden");
-  }
-
-  function closeVehicleForm() {
-    vehicleModal.classList.add("hidden");
-  }
-
-  async function saveVehicle() {
-    const data = {
-      number: v_number.value.trim(),
-      type: v_type.value.trim(),
-      year: v_year.value,
-      status: v_status.value
+    // تسجيل الخروج
+    document.getElementById("logoutBtn").onclick = () => {
+      signOut(auth).then(() => location.href = "login.html");
     };
 
-    if (!data.number || !data.type) return alert("يرجى إدخال البيانات");
+    // إضافة مركبة
+    document.getElementById("addVehicleBtn").onclick = () => {
+      const plate = document.getElementById("plate").value.trim();
+      const model = document.getElementById("model").value.trim();
+      const year = document.getElementById("year").value.trim();
 
-    if (editId) {
-      await updateData("vehicles/" + editId, data);
-    } else {
-      await pushData("vehicles", data);
-    }
+      if (!plate || !model || !year) {
+        alert("يرجى تعبئة جميع الحقول");
+        return;
+      }
 
-    closeVehicleForm();
-  }
+      const id = Date.now();
 
-  function editVehicle(id, number, type, year, status) {
-    editId = id;
-    modalTitle.textContent = "تعديل مركبة";
-    v_number.value = number;
-    v_type.value = type;
-    v_year.value = year;
-    v_status.value = status;
-    vehicleModal.classList.remove("hidden");
-  }
+      set(ref(db, "vehicles/" + id), {
+        plate,
+        model,
+        year,
+        created_at: Date.now()
+      });
 
-  async function deleteVehicle(id) {
-    if (!confirm("هل أنت متأكد؟")) return;
-    await deleteData("vehicles/" + id);
-  }
-</script>
+      alert("تمت إضافة المركبة بنجاح");
+    };
+
+    // تحميل المركبات
+    onValue(ref(db, "vehicles"), snap => {
+      const table = document.getElementById("vehicles-table");
+      table.innerHTML = "";
+
+      snap.forEach(child => {
+        const v = child.val();
+        const id = child.key;
+
+        table.innerHTML += `
+          <tr>
+            <td>${v.plate}</td>
+            <td>${v.model}</td>
+            <td>${v.year}</td>
+            <td>
+              <button onclick="deleteVehicle('${id}')">حذف</button>
+            </td>
+          </tr>
+        `;
+      });
+    });
+
+    // حذف مركبة
+    window.deleteVehicle = (id) => {
+      if (!confirm("هل أنت متأكد من الحذف؟")) return;
+      remove(ref(db, "vehicles/" + id));
+      alert("تم حذف المركبة");
+    };
+  </script>
+
+  <script type="module" src="session.js"></script>
+  <script type="module" src="permissions.js"></script>
 
 </body>
 </html>
