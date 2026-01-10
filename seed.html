@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>Database Seeder</title>
+</head>
+
+<body style="font-family: sans-serif; padding: 40px;">
+
+<h2>🔥 جاري حقن البيانات…</h2>
+<p>لا تغلق الصفحة حتى تظهر رسالة النجاح.</p>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+<script>
+// نفس بيانات مشروعك
+const firebaseConfig = {
+  apiKey: "AIzaSyDkJ85bI9-6Q_N97dqhBhpWgytqKoM6VH0",
+  authDomain: "fleet-123.firebaseapp.com",
+  databaseURL: "https://fleet-123-default-rtdb.firebaseio.com",
+  projectId: "fleet-123",
+  storageBucket: "fleet-123.firebasestorage.app",
+  messagingSenderId: "266130114678",
+  appId: "1:266130114678:web:56e89b5922749a00c4f757"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const cars = [
+  {
+    carNumber: "A-12345",
+    plateCode: "أبوظبي 11",
+    owner: "شركة المسعود",
+    driver: "أحمد علي",
+    insuranceExpiry: "2026-02-10",
+    licenseExpiry: "2026-03-15",
+    notes: "سيارة جديدة",
+    archived: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    carNumber: "B-90877",
+    plateCode: "أبوظبي 22",
+    owner: "شركة المسعود",
+    driver: "سالم راشد",
+    insuranceExpiry: "2026-01-05",
+    licenseExpiry: "2026-01-20",
+    notes: "",
+    archived: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    carNumber: "C-55421",
+    plateCode: "أبوظبي 33",
+    owner: "محمد سعيد",
+    driver: "خالد يوسف",
+    insuranceExpiry: "2025-12-28",
+    licenseExpiry: "2026-02-01",
+    notes: "تحتاج صيانة",
+    archived: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    carNumber: "D-77890",
+    plateCode: "أبوظبي 44",
+    owner: "شركة المسعود",
+    driver: "عبدالله حسن",
+    insuranceExpiry: "2026-01-12",
+    licenseExpiry: "2026-04-10",
+    notes: "",
+    archived: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    carNumber: "E-11223",
+    plateCode: "أبوظبي 55",
+    owner: "شركة المسعود",
+    driver: "محمود فهد",
+    insuranceExpiry: "2026-01-01",
+    licenseExpiry: "2026-01-03",
+    notes: "منتهي التأمين والترخيص",
+    archived: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    carNumber: "F-88990",
+    plateCode: "أبوظبي 66",
+    owner: "شركة المسعود",
+    driver: "سعيد ناصر",
+    insuranceExpiry: "2026-01-15",
+    licenseExpiry: "2026-01-18",
+    notes: "",
+    archived: false,
+    createdAt: new Date().toISOString()
+  }
+];
+
+async function seed() {
+  for (let car of cars) {
+    await db.collection("cars").add(car);
+  }
+
+  document.body.innerHTML = `
+    <h1 style="color: green;">✔ تم حقن البيانات بنجاح</h1>
+    <p>يمكنك الآن العودة إلى النظام وتشغيله بشكل كامل.</p>
+  `;
+}
+
+seed();
+</script>
+
+</body>
+</html>
