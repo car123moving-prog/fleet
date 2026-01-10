@@ -1,81 +1,131 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>السائقين</title>
-
-    <link rel="stylesheet" href="assets/css/style.css">
-
-    <script type="module" src="assets/js/firebase.js"></script>
-    <script src="assets/js/session.js"></script>
-    <script src="assets/js/roles.js"></script>
-    <script src="assets/js/lang.js"></script>
-    <script src="assets/js/ui.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title data-lang="drivers_page">السائقون</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+<body>
+  <div id="sidebar"></div>
+  <div id="topbar"></div>
 
-<body data-page="drivers">
+  <main class="container">
+    <header class="page-header">
+      <h1 data-lang="drivers_page">السائقون</h1>
+      <div>
+        <button id="addDriverBtn" class="btn primary" data-lang="add_driver">إضافة سائق</button>
+      </div>
+    </header>
 
-    <!-- Sidebar -->
-    <div id="sidebar"></div>
+    <section>
+      <table class="table" id="driversTable">
+        <thead>
+          <tr>
+            <th data-lang="col_id">ID</th>
+            <th data-lang="col_name">الاسم</th>
+            <th data-lang="col_phone">الهاتف</th>
+            <th data-lang="col_status">الحالة</th>
+            <th data-lang="col_actions">إجراءات</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
 
-    <!-- Main -->
-    <div class="main">
-
-        <!-- Topbar -->
-        <div id="topbar"></div>
-
-        <div class="content">
-
-            <h1 class="page-header">السائقين</h1>
-
-            <!-- Table -->
-            <div id="drivers-list" class="table"></div>
-
-        </div>
-
-        <!-- Developer Footer -->
-        <div class="footer">
-            © 2025 — Developed by <strong>MOHAMED SAAD</strong>
-        </div>
-
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 id="modalTitle" data-lang="add_driver">إضافة سائق</h3>
+      <div class="form-group">
+        <label data-lang="driver_name">اسم السائق</label>
+        <input id="driverName" />
+      </div>
+      <div class="form-group">
+        <label data-lang="driver_phone">الهاتف</label>
+        <input id="driverPhone" />
+      </div>
+      <div class="form-actions">
+        <button id="saveDriver" class="btn primary" data-lang="save">حفظ</button>
+        <button id="cancelModal" class="btn" data-lang="cancel">إلغاء</button>
+      </div>
     </div>
+  </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+  <script src="firebase.js"></script>
+  <script src="session.js"></script>
+  <script src="ui.js"></script>
+  <script src="lang.js"></script>
+  <script>
+    ensureAuthRedirect();
 
-    Session.check();
-    Roles.enforcePage();
+    const modal = document.getElementById('modal');
+    document.getElementById('addDriverBtn').addEventListener('click', ()=> {
+      modal.classList.remove('hidden');
+      document.getElementById('driverName').value = '';
+      document.getElementById('driverPhone').value = '';
+    });
+    document.getElementById('cancelModal').addEventListener('click', ()=> modal.classList.add('hidden'));
 
-    const list = document.getElementById("drivers-list");
-
-    DB.drivers.watch(data => {
-        list.innerHTML = "";
-
-        if (!data) {
-            list.innerHTML = "<div class='empty'>لا يوجد سائقين</div>";
-            return;
-        }
-
-        const entries = Object.entries(data);
-
-        entries.forEach(([id, d]) => {
-            const row = document.createElement("div");
-            row.className = "table-row";
-
-            row.innerHTML = `
-                <div class="cell">${d.name || "-"}</div>
-                <div class="cell">${d.phone || "-"}</div>
-                <div class="cell">${d.license || "-"}</div>
-                <div class="cell">${d.status || "-"}</div>
-            `;
-
-            list.appendChild(row);
-        });
+    document.getElementById('saveDriver').addEventListener('click', async () => {
+      const name = document.getElementById('driverName').value.trim();
+      const phone = document.getElementById('driverPhone').value.trim();
+      if(!name){ alert('Enter name'); return; }
+      const obj = { name, phone, status: 'active', timestamp: Date.now() };
+      await pushData('drivers', obj);
+      modal.classList.add('hidden');
+      loadDrivers();
     });
 
-});
-</script>
+    async function loadDrivers(){
+      const drivers = await readOnce('drivers') || {};
+      const tbody = document.querySelector('#driversTable tbody');
+      tbody.innerHTML = '';
+      Object.entries(drivers).forEach(([id, d])=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(id)}</td>
+          <td>${escapeHtml(d.name)}</td>
+          <td>${escapeHtml(d.phone)}</td>
+          <td>${escapeHtml(d.status||'')}</td>
+          <td>
+            <button class="btn small" data-id="${id}" data-action="edit" data-lang="edit">تعديل</button>
+            <button class="btn small danger" data-id="${id}" data-action="delete" data-lang="delete">حذف</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      applyTranslations();
+    }
 
+    document.querySelector('#driversTable tbody').addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      if(action==='delete'){
+        if(!confirm('تأكيد الحذف؟')) return;
+        await deleteData(`drivers/${id}`);
+        loadDrivers();
+      } else if(action==='edit'){
+        const d = (await readOnce(`drivers/${id}`)) || {};
+        document.getElementById('driverName').value = d.name || '';
+        document.getElementById('driverPhone').value = d.phone || '';
+        modal.classList.remove('hidden');
+        document.getElementById('saveDriver').onclick = async ()=>{
+          const name = document.getElementById('driverName').value.trim();
+          const phone = document.getElementById('driverPhone').value.trim();
+          await updateData(`drivers/${id}`, { name, phone, updatedAt: Date.now() });
+          modal.classList.add('hidden');
+          loadDrivers();
+        };
+      }
+    });
+
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+
+    applyTranslations();
+    loadDrivers();
+  </script>
 </body>
 </html>
