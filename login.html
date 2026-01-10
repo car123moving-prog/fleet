@@ -34,10 +34,10 @@
     </div>
   </div>
 
-  <!-- مكتبات Firebase (compat) -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <!-- 🔥 مكتبات Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <!-- ملفات النظام -->
   <script src="firebase.js"></script>
@@ -50,22 +50,18 @@
       const msg = document.getElementById('authMessage');
       msg.textContent = "";
 
-      try {
-        await login(email, password);
-      } catch (err) {
+      login(email, password).catch(err => {
         msg.textContent = err.message;
-      }
+      });
     });
 
     document.getElementById('guestBtn').addEventListener('click', async () => {
       const msg = document.getElementById('authMessage');
       msg.textContent = "";
 
-      try {
-        await loginAsGuest();
-      } catch (err) {
+      loginAsGuest().catch(err => {
         msg.textContent = err.message;
-      }
+      });
     });
   </script>
 
