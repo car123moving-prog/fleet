@@ -1,83 +1,59 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<!doctype html>
+<html lang="en" dir="ltr">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>تسجيل الدخول</title>
-
-    <link rel="stylesheet" href="assets/css/style.css">
-
-    <script type="module" src="assets/js/firebase.js"></script>
-    <script src="assets/js/session.js"></script>
-    <script src="assets/js/lang.js"></script>
-    <script src="assets/js/ui.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login - Fleet Management</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
-<body data-page="login">
-
-    <div class="login-page">
-        <div class="login-box">
-
-            <img src="assets/img/logo.png" class="login-logo">
-
-            <h2 class="login-title">تسجيل الدخول</h2>
-
-            <input id="email" type="text" placeholder="البريد الإلكتروني">
-            <input id="password" type="password" placeholder="كلمة المرور">
-
-            <button class="btn primary" onclick="login()">دخول</button>
-
-            <div id="error" class="error"></div>
-        </div>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1 data-lang="login_title">تسجيل الدخول</h1>
+      <div class="form-group">
+        <label data-lang="email_label">البريد الإلكتروني</label>
+        <input id="email" type="email" placeholder="" data-lang-placeholder="email_placeholder" />
+      </div>
+      <div class="form-group">
+        <label data-lang="password_label">كلمة المرور</label>
+        <input id="password" type="password" placeholder="" data-lang-placeholder="password_placeholder" />
+      </div>
+      <div class="form-actions">
+        <button id="loginBtn" class="btn primary" data-lang="login_btn">دخول</button>
+        <button id="guestBtn" class="btn" data-lang="guest_btn">تجربة</button>
+      </div>
+      <p class="auth-note" id="authMessage"></p>
     </div>
+  </div>
 
-    <!-- Developer Footer -->
-    <div class="footer">
-        © 2025 — Developed by <strong>MOHAMED SAAD</strong>
-    </div>
+  <script src="firebase.js"></script>
+  <script src="session.js"></script>
+  <script src="lang.js"></script>
+  <script>
+    // Local handlers
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const msg = document.getElementById('authMessage');
+      msg.textContent = '';
+      try {
+        await login(email, password);
+        // on success, session.js will redirect
+      } catch (err) {
+        msg.textContent = err.message || 'Login failed';
+      }
+    });
 
-<script>
-async function login() {
-    const email = document.getElementById("email").value.trim();
-    const pass = document.getElementById("password").value.trim();
-    const error = document.getElementById("error");
+    document.getElementById('guestBtn').addEventListener('click', async () => {
+      try {
+        await loginAsGuest();
+      } catch (err) {
+        document.getElementById('authMessage').textContent = err.message || 'Guest login failed';
+      }
+    });
 
-    error.textContent = "";
-
-    if (!email || !pass) {
-        error.textContent = "الرجاء إدخال البريد وكلمة المرور";
-        return;
-    }
-
-    // جلب المستخدمين من قاعدة البيانات
-    const users = await DB.users.list();
-    if (!users || !users.data) {
-        error.textContent = "خطأ في الاتصال بالنظام";
-        return;
-    }
-
-    const entries = Object.entries(users.data);
-    const found = entries.find(([id, u]) => u.email === email && u.password === pass);
-
-    if (!found) {
-        error.textContent = "بيانات الدخول غير صحيحة";
-        return;
-    }
-
-    const [userId, user] = found;
-
-    // حفظ الجلسة
-    localStorage.setItem("user_id", userId);
-    localStorage.setItem("user_name", user.name);
-    localStorage.setItem("user_role", user.role);
-
-    // إنشاء جلسة في Firebase
-    DB.sessions.create(userId, "web");
-
-    // الانتقال للوحة التحكم
-    window.location.href = "dashboard.html";
-}
-</script>
-
+    // Initialize translations
+    applyTranslations();
+  </script>
 </body>
 </html>
