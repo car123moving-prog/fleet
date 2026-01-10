@@ -1,25 +1,10 @@
-// Firebase Modular SDK
+// firebase.js
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-  getAuth, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  signOut,
-  updatePassword 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
-import { 
-  getDatabase, 
-  ref, 
-  set, 
-  get, 
-  onValue, 
-  remove, 
-  update 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-// Your Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDkJ85bI9-6Q_N97dqhBhpWgytqKoM6VH0",
   authDomain: "fleet-123.firebaseapp.com",
@@ -30,21 +15,10 @@ const firebaseConfig = {
   appId: "1:266130114678:web:56e89b5922749a00c4f757"
 };
 
-// Initialize Firebase
-export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getDatabase(app);
+const app = initializeApp(firebaseConfig);
 
-// Export functions
-export {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  updatePassword,
-  ref,
-  set,
-  get,
-  onValue,
-  remove,
-  update
-};
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+
+export default app;
