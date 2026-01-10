@@ -3,46 +3,149 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title data-lang="notifications_page">الإشعارات</title>
+  <title>الإشعارات</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
-  <div id="sidebar"></div>
-  <div id="topbar"></div>
 
-  <main class="container">
-    <header class="page-header">
-      <h1 data-lang="notifications_page">الإشعارات</h1>
-    </header>
+<div id="sidebar"></div>
+<div id="topbar"></div>
 
-    <section>
-      <ul id="notificationsList" class="notifications-list"></ul>
-    </section>
-  </main>
+<main class="page-content">
 
-  <script src="firebase.js"></script>
-  <script src="session.js"></script>
-  <script src="ui.js"></script>
-  <script src="lang.js"></script>
-  <script>
-    ensureAuthRedirect();
+  <h1>إدارة الإشعارات</h1>
 
-    async function loadNotifications(){
-      const notes = await readOnce('notifications') || {};
-      const ul = document.getElementById('notificationsList');
-      ul.innerHTML = '';
-      Object.entries(notes).sort((a,b)=> (b[1].timestamp||0)-(a[1].timestamp||0)).forEach(([id,n])=>{
-        const li = document.createElement('li');
-        li.className = n.read ? 'read' : 'unread';
-        li.innerHTML = `<div class="note-title">${escapeHtml(n.title)}</div><div class="note-time">${new Date(n.timestamp||0).toLocaleString()}</div>`;
-        ul.appendChild(li);
-      });
+  <div class="page-header">
+    <button class="btn primary" onclick="openNotificationForm()">+ إضافة إشعار</button>
+  </div>
+
+  <div class="table-tools">
+    <input id="searchInput" type="text" placeholder="بحث..." oninput="applySearch()" />
+  </div>
+
+  <div class="table-card">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>العنوان</th>
+          <th>الفئة</th>
+          <th>التاريخ</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <div id="pagination" class="pagination"></div>
+
+</main>
+
+<!-- نافذة إضافة / تعديل إشعار -->
+<div id="notificationModal" class="modal hidden">
+  <div class="modal-content">
+    <h2 id="modalTitle">إضافة إشعار</h2>
+
+    <label>العنوان</label>
+    <input id="n_title" type="text">
+
+    <label>الفئة</label>
+    <select id="n_type">
+      <option value="general">عام</option>
+      <option value="drivers">سائقين</option>
+      <option value="vehicles">مركبات</option>
+      <option value="maintenance">صيانة</option>
+    </select>
+
+    <label>الوصف</label>
+    <textarea id="n_desc"></textarea>
+
+    <div class="modal-actions">
+      <button class="btn primary" onclick="saveNotification()">حفظ</button>
+      <button class="btn" onclick="closeNotificationForm()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<script src="firebase.js"></script>
+<script src="session.js"></script>
+<script src="permissions.js"></script>
+
+<script>
+  protectPage("manage_notifications");
+
+  let fullData = [];
+  let filteredData = [];
+  let pageSize = 8;
+  let currentPage = 1;
+  let editId = null;
+
+  fetch("sidebar.html").then(r => r.text()).then(html => sidebar.innerHTML = html);
+  fetch("topbar.html").then(r => r.text()).then(html => topbar.innerHTML = html);
+
+  readData("notifications", data => {
+    if (!data) return;
+    fullData = Object.entries(data).map(([id, n]) => ({ id, ...n }));
+    filteredData = fullData;
+    renderTable();
+  });
+
+  function generateRow(item) {
+    return `
+      <tr>
+        <td>${item.title}</td>
+        <td><span class="badge badge-${item.type}">${item.type}</span></td>
+        <td>${new Date(item.date).toLocaleString("ar-AE")}</td>
+        <td>
+          <button class="btn small" onclick="editNotification('${item.id}', '${item.title}', '${item.type}', \`${item.desc}\`)">تعديل</button>
+          <button class="btn small danger" onclick="deleteNotification('${item.id}')">حذف</button>
+        </td>
+      </tr>
+    `;
+  }
+
+  function renderTable() {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    const pageItems = filteredData.slice(start, end);
+    tableBody.innerHTML = pageItems.map(generateRow).join("");
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const pages = Math.ceil(filteredData.length / pageSize);
+    pagination.innerHTML = "";
+    for (let i = 1; i <= pages; i++) {
+      const btn = document.createElement("button");
+      btn.textContent = i;
+      if (i === currentPage) btn.classList.add("active");
+      btn.onclick = () => { currentPage = i; renderTable(); };
+      pagination.appendChild(btn);
     }
+  }
 
-    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+  function applySearch() {
+    const q = searchInput.value.toLowerCase();
+    filteredData = fullData.filter(item =>
+      JSON.stringify(item).toLowerCase().includes(q)
+    );
+    currentPage = 1;
+    renderTable();
+  }
 
-    applyTranslations();
-    loadNotifications();
-  </script>
-</body>
-</html>
+  function openNotificationForm() {
+    editId = null;
+    modalTitle.textContent = "إضافة إشعار";
+    n_title.value = "";
+    n_type.value = "general";
+    n_desc.value = "";
+    notificationModal.classList.remove("hidden");
+  }
+
+  function closeNotificationForm
