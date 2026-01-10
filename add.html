@@ -1,49 +1,154 @@
-<!-- أضف هذا السكربت في نهاية add.html قبل </body> -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إضافة سيارة جديدة</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+
+<body class="page-enter bg-light d-flex flex-column min-vh-100">
+
+<div id="pageContent" style="display:none;">
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.html">
+        <img src="logo.png" style="height:40px" class="me-2">
+        نظام إدارة السيارات
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div id="nav" class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto">
+
+          <li class="nav-item">
+            <a href="index.html" class="nav-link btn btn-outline-light fw-bold px-3 me-2">
+              <i class="bi bi-house-door me-1"></i> الرئيسية
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <button onclick="firebase.auth().signOut()" class="btn btn-danger fw-bold px-3">
+              <i class="bi bi-box-arrow-right me-1"></i> خروج
+            </button>
+          </li>
+
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <main class="container py-4 flex-grow-1">
+
+    <h2 class="fw-bold text-primary mb-4">
+      <i class="bi bi-plus-circle me-2"></i> إضافة سيارة جديدة
+    </h2>
+
+    <div class="card p-4">
+
+      <form id="addForm">
+
+        <div class="row g-3">
+
+          <div class="col-md-6">
+            <label class="form-label fw-bold">رقم السيارة</label>
+            <input id="carNumber" class="form-control" required>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-bold">كود اللوحة</label>
+            <input id="plateCode" class="form-control" required>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-bold">المالك</label>
+            <input id="owner" class="form-control" required>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-bold">السائق</label>
+            <input id="driver" class="form-control" required>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-bold">تاريخ انتهاء التأمين</label>
+            <input type="date" id="insuranceExpiry" class="form-control" required>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-bold">تاريخ انتهاء الترخيص</label>
+            <input type="date" id="licenseExpiry" class="form-control" required>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-bold">ملاحظات</label>
+            <textarea id="notes" class="form-control" rows="3"></textarea>
+          </div>
+
+        </div>
+
+        <div class="d-grid mt-4">
+          <button class="btn btn-primary btn-lg fw-bold">
+            <i class="bi bi-check-circle me-1"></i> حفظ السيارة
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+
+  </main>
+
+  <footer class="bg-light py-3 border-top mt-auto">
+    <div class="container text-center">
+      <small class="text-muted">
+        Developed by <strong class="text-primary">MOHAMED SAAD</strong> — <span id="year"></span>
+      </small>
+    </div>
+  </footer>
+
+</div>
+
+<!-- Firebase + Config -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="config.js"></script>
 
 <script>
 document.getElementById("year").textContent = new Date().getFullYear();
 
-window.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("addForm");
+document.getElementById("addForm").addEventListener("submit", e => {
+  e.preventDefault();
 
-  // تحقق من وجود Firebase و db
-  if (typeof firebase === "undefined") {
-    alert("المشكلة: مكتبة Firebase غير محمّلة. تأكد من السكربتات في أسفل الصفحة.");
-    return;
-  }
-
-  if (typeof db === "undefined") {
-    alert("المشكلة: لم يتم تحميل config.js أو لم يتم تعريف db. تأكد أن الملف موجود في نفس المجلد.");
-    return;
-  }
-
-  form.addEventListener("submit", e => {
-    e.preventDefault();
-
-    const carNumber = document.getElementById("carNumber").value;
-    const plateCode = document.getElementById("plateCode").value;
-    const owner = document.getElementById("owner").value;
-    const driver = document.getElementById("driver").value;
-    const insuranceExpiry = document.getElementById("insuranceExpiry").value;
-    const licenseExpiry = document.getElementById("licenseExpiry").value;
-    const notes = document.getElementById("notes").value;
-
-    db.collection("cars").add({
-      carNumber,
-      plateCode,
-      owner,
-      driver,
-      insuranceExpiry,
-      licenseExpiry,
-      notes,
-      archived: false,
-      createdAt: new Date().toISOString()
-    }).then(() => {
-      alert("✅ تمت إضافة السيارة بنجاح");
-      window.location.href = "index.html";
-    }).catch(err => {
-      alert("❌ فشل في الإضافة: " + err.message);
-    });
+  db.collection("cars").add({
+    carNumber: carNumber.value,
+    plateCode: plateCode.value,
+    owner: owner.value,
+    driver: driver.value,
+    insuranceExpiry: insuranceExpiry.value,
+    licenseExpiry: licenseExpiry.value,
+    notes: notes.value,
+    archived: false,
+    createdAt: new Date().toISOString()
+  }).then(() => {
+    alert("تمت إضافة السيارة بنجاح");
+    window.location.href = "index.html";
   });
 });
 </script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
